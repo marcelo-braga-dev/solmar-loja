@@ -1,0 +1,69 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Storefront;
+
+use App\Domains\Catalog\Services\BrandService;
+use App\Domains\Catalog\Services\CategoryService;
+use App\Domains\Catalog\Services\ProductService;
+use App\Http\Controllers\Controller;
+use Inertia\Inertia;
+use Inertia\Response;
+
+final class HomeController extends Controller
+{
+    public function __construct(
+        private readonly ProductService $productService,
+        private readonly CategoryService $categoryService,
+        private readonly BrandService $brandService,
+    ) {}
+
+    public function __invoke(): Response
+    {
+        return Inertia::render('Storefront/Home', [
+            'featuredProducts' => $this->productService->featured(8)->map(fn ($p) => [
+                'id'                     => $p->id,
+                'uuid'                   => $p->uuid,
+                'name'                   => $p->name,
+                'slug'                   => $p->slug,
+                'price_cents'            => $p->price_cents,
+                'compare_at_price_cents' => $p->compare_at_price_cents,
+                'has_discount'           => $p->hasDiscount(),
+                'discount_percent'       => $p->discountPercent(),
+                'brand_name'             => $p->brand?->name,
+                'cover_image'            => $p->coverImage()?->url(),
+            ]),
+            'onSaleProducts' => $this->productService->onSale(8)->map(fn ($p) => [
+                'id'                     => $p->id,
+                'uuid'                   => $p->uuid,
+                'name'                   => $p->name,
+                'slug'                   => $p->slug,
+                'price_cents'            => $p->price_cents,
+                'compare_at_price_cents' => $p->compare_at_price_cents,
+                'has_discount'           => $p->hasDiscount(),
+                'discount_percent'       => $p->discountPercent(),
+                'brand_name'             => $p->brand?->name,
+                'cover_image'            => $p->coverImage()?->url(),
+            ]),
+            'mainCategories' => $this->categoryService->tree()->take(8)->map(fn ($c) => [
+                'id'       => $c->id,
+                'name'     => $c->name,
+                'slug'     => $c->slug,
+                'icon'     => $c->icon,
+                'image'    => $c->image,
+                'children' => $c->children->take(5)->map(fn ($child) => [
+                    'id'   => $child->id,
+                    'name' => $child->name,
+                    'slug' => $child->slug,
+                ]),
+            ]),
+            'brands' => $this->brandService->allActive()->take(12)->map(fn ($b) => [
+                'id'   => $b->id,
+                'name' => $b->name,
+                'logo' => $b->logo,
+                'slug' => $b->slug,
+            ]),
+        ]);
+    }
+}

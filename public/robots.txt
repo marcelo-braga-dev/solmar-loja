@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /conta/
+Disallow: /checkout
+Disallow: /carrinho
+Disallow: /login
+Disallow: /register
+Disallow: /telescope/
+Disallow: /horizon/
+Disallow: /webhooks/
+
+Sitemap: /sitemap.xml
