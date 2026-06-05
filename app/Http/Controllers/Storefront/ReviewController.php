@@ -12,19 +12,33 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 final class ReviewController extends Controller
 {
     public function store(Request $request, Product $product): RedirectResponse
     {
         $validated = $request->validate([
-            'rating'  => ['required', 'integer', 'min:1', 'max:5'],
-            'title'   => ['nullable', 'string', 'max:100'],
-            'comment' => ['required', 'string', 'min:20', 'max:2000'],
+            'rating'   => ['required', 'integer', 'min:1', 'max:5'],
+            'title'    => ['nullable', 'string', 'max:100'],
+            'comment'  => ['required', 'string', 'min:20', 'max:2000'],
+            'images'   => ['nullable', 'array', 'max:4'],
+            'images.*' => ['image', 'max:5120'],
         ]);
 
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $img) {
+                $path         = $img->store('reviews', 'public');
+                $imagePaths[] = Storage::disk('public')->url($path);
+            }
+        }
+
         Review::create([
-            ...$validated,
+            'rating'        => $validated['rating'],
+            'title'         => $validated['title'] ?? null,
+            'comment'       => $validated['comment'],
+            'images'        => $imagePaths ?: null,
             'product_id'    => $product->id,
             'user_id'       => Auth::id(),
             'reviewer_name' => Auth::user()?->name,
@@ -63,6 +77,7 @@ final class ReviewController extends Controller
                 'rating'            => $r->rating,
                 'title'             => $r->title,
                 'comment'           => $r->comment,
+                'images'            => $r->images ?? [],
                 'author'            => $r->authorName(),
                 'verified_purchase' => $r->verified_purchase,
                 'created_at'        => $r->created_at->diffForHumans(),

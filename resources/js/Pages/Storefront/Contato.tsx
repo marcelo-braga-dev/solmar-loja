@@ -8,6 +8,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
+import { maskPhone } from '@/Lib/masks';
 import type { PageProps } from '@inertiajs/react';
 
 interface Props extends PageProps {
@@ -90,7 +91,8 @@ export default function Contato({ success }: Props) {
                                         <TextField
                                             label="Telefone / WhatsApp"
                                             value={data.phone}
-                                            onChange={(e) => setData('phone', e.target.value)}
+                                            onChange={(e) => setData('phone', maskPhone(e.target.value))}
+                                            slotProps={{ htmlInput: { maxLength: 16 } }}
                                             fullWidth
                                         />
                                     </Grid>

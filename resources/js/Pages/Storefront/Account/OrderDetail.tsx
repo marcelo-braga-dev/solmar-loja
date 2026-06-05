@@ -2,9 +2,15 @@ import { type ElementType } from 'react';
 import { Head, Link } from '@inertiajs/react';
 import {
     Box, Chip, Grid, Paper, Stack, Typography, Button,
-    Divider, Avatar,
+    Divider, Avatar, alpha,
 } from '@mui/material';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+import PaymentIcon from '@mui/icons-material/Payment';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import DoneAllIcon from '@mui/icons-material/DoneAll';
 import AccountLayout from '@/Layouts/AccountLayout';
 import { formatBRL } from '@/Lib/formatters';
 import type { PageProps } from '@inertiajs/react';
@@ -50,6 +56,104 @@ const COLOR_MAP: Record<string, 'default' | 'success' | 'error' | 'warning' | 'i
     default: 'default', success: 'success', error: 'error', warning: 'warning', info: 'info', primary: 'primary',
 };
 
+// Mapa de steps da timeline baseado no status atual
+const STATUS_STEP: Record<string, number> = {
+    pending: 0, awaiting_payment: 0, paid: 1, processing: 2, shipped: 3, delivered: 4, canceled: -1, refunded: -1,
+};
+
+const TIMELINE_STEPS = [
+    { key: 'placed',    icon: <ShoppingBagIcon />,  label: 'Pedido Realizado',   desc: 'Seu pedido foi recebido' },
+    { key: 'paid',      icon: <PaymentIcon />,       label: 'Pagamento Confirmado', desc: 'Pagamento aprovado' },
+    { key: 'processing',icon: <InventoryIcon />,     label: 'Em Preparação',      desc: 'Seu pedido está sendo separado' },
+    { key: 'shipped',   icon: <LocalShippingIcon />, label: 'Enviado',            desc: 'A caminho do destino' },
+    { key: 'delivered', icon: <DoneAllIcon />,       label: 'Entregue',           desc: 'Pedido entregue!' },
+];
+
+function OrderTimeline({ status, placedAt, shippedAt }: { status: string; placedAt: string; shippedAt?: string }) {
+    const currentStep = STATUS_STEP[status] ?? 0;
+    const isCanceled  = status === 'canceled' || status === 'refunded';
+
+    if (isCanceled) {
+        return (
+            <Paper elevation={0} sx={{ p: 2.5, border: '1px solid rgba(220,38,38,0.2)', borderRadius: 2.5, bgcolor: alpha('#DC2626', 0.03) }}>
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                    <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <RadioButtonUncheckedIcon sx={{ color: 'white', fontSize: 20 }} />
+                    </Box>
+                    <Box>
+                        <Typography sx={{ fontWeight: 700, color: '#DC2626' }}>
+                            {status === 'canceled' ? 'Pedido Cancelado' : 'Pedido Reembolsado'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>Entre em contato com o suporte se precisar de ajuda</Typography>
+                    </Box>
+                </Stack>
+            </Paper>
+        );
+    }
+
+    return (
+        <Paper elevation={0} sx={{ p: 2.5, border: '1px solid rgba(0,0,0,0.07)', borderRadius: 2.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2.5 }}>Status do Pedido</Typography>
+            <Box sx={{ position: 'relative' }}>
+                {/* Linha de progresso */}
+                <Box sx={{
+                    position: 'absolute', left: 17, top: 18, bottom: 18,
+                    width: 2, bgcolor: 'rgba(0,0,0,0.08)', zIndex: 0,
+                }} />
+                <Box sx={{
+                    position: 'absolute', left: 17, top: 18,
+                    width: 2, zIndex: 1,
+                    height: `${Math.min(100, (currentStep / (TIMELINE_STEPS.length - 1)) * 100)}%`,
+                    bgcolor: 'primary.main',
+                    transition: 'height 0.8s ease',
+                }} />
+
+                <Stack spacing={2.5} sx={{ position: 'relative', zIndex: 2 }}>
+                    {TIMELINE_STEPS.map((step, i) => {
+                        const done    = i <= currentStep;
+                        const current = i === currentStep;
+                        return (
+                            <Stack key={step.key} direction="row" spacing={2} sx={{ alignItems: 'flex-start' }}>
+                                <Box sx={{
+                                    width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    bgcolor: done ? 'primary.main' : 'rgba(0,0,0,0.06)',
+                                    color: done ? 'white' : 'text.disabled',
+                                    boxShadow: current ? '0 0 0 4px rgba(11,95,255,0.15)' : 'none',
+                                    transition: 'all 0.4s',
+                                    fontSize: 18,
+                                }}>
+                                    {done ? <CheckCircleIcon sx={{ fontSize: 20 }} /> : step.icon}
+                                </Box>
+                                <Box sx={{ pt: 0.5 }}>
+                                    <Typography sx={{
+                                        fontWeight: current ? 800 : done ? 600 : 400,
+                                        color: done ? 'text.primary' : 'text.disabled',
+                                        fontSize: 14, lineHeight: 1.2,
+                                    }}>
+                                        {step.label}
+                                        {current && (
+                                            <Box component="span" sx={{
+                                                ml: 1, fontSize: 10, bgcolor: 'primary.main', color: 'white',
+                                                px: 0.8, py: 0.2, borderRadius: 5, fontWeight: 700,
+                                            }}>
+                                                ATUAL
+                                            </Box>
+                                        )}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: done ? 'text.secondary' : 'text.disabled' }}>
+                                        {i === 0 ? placedAt : i === 3 && shippedAt ? shippedAt : step.desc}
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        );
+                    })}
+                </Stack>
+            </Box>
+        </Paper>
+    );
+}
+
 export default function OrderDetail({ order }: Props) {
     return (
         <AccountLayout title={`Pedido #${order.uuid.slice(0, 8).toUpperCase()}`}>
@@ -75,6 +179,13 @@ export default function OrderDetail({ order }: Props) {
                         )}
                     </Stack>
                 </Paper>
+
+                {/* Timeline */}
+                <OrderTimeline
+                    status={order.status}
+                    placedAt={order.placed_at}
+                    shippedAt={order.shipment?.shipped_at}
+                />
 
                 <Grid container spacing={3}>
                     <Grid size={{ xs: 12, md: 8 }}>

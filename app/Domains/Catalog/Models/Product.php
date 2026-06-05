@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Catalog\Models;
 
 use App\Domains\Catalog\Enums\ProductStatus;
+use App\Domains\Catalog\Models\PriceList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Scout\Searchable;
 
@@ -84,6 +86,57 @@ final class Product extends Model
         return $this->belongsToMany(AttributeValue::class, 'product_attribute_values');
     }
 
+    /** @return BelongsToMany<Product, $this> */
+    public function relatedProducts(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            self::class,
+            'product_relations',
+            'product_id',
+            'related_product_id'
+        )->withPivot('type', 'position')->orderByPivot('position');
+    }
+
+    /** Produtos frequentemente comprados juntos — baseado em co-ocorrência real em pedidos */
+    public function frequentlyBoughtWith(int $limit = 4): \Illuminate\Database\Eloquent\Collection
+    {
+        // Primeiro tenta relações manuais cadastradas pelo admin
+        $manual = $this->relatedProducts()
+            ->wherePivot('type', 'frequently_bought')
+            ->with(['brand', 'images'])
+            ->published()
+            ->limit($limit)
+            ->get();
+
+        if ($manual->count() >= $limit) {
+            return $manual;
+        }
+
+        // Fallback: co-ocorrência em pedidos (produtos que aparecem no mesmo pedido)
+        $coIds = DB::table('order_items as a')
+            ->join('order_items as b', 'a.order_id', '=', 'b.order_id')
+            ->where('a.product_id', $this->id)
+            ->where('b.product_id', '!=', $this->id)
+            ->select('b.product_id', DB::raw('COUNT(*) as freq'))
+            ->groupBy('b.product_id')
+            ->orderByDesc('freq')
+            ->limit($limit)
+            ->pluck('b.product_id');
+
+        if ($coIds->isEmpty()) {
+            return $manual;
+        }
+
+        $coProducts = self::query()
+            ->with(['brand', 'images'])
+            ->published()
+            ->whereIn('id', $coIds)
+            ->get()
+            ->sortBy(fn ($p) => $coIds->search($p->id));
+
+        return $manual->merge($coProducts)->unique('id')->take($limit)->values();
+    }
+
     // ─── Scopes ──────────────────────────────────────────────────────────────
 
     /** @param Builder<Product> $query */
@@ -121,6 +174,25 @@ final class Product extends Model
         return (int) round(
             (1 - $this->price_cents / $this->compare_at_price_cents) * 100
         );
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Relations\HasMany<ProductPrice, $this> */
+    public function prices(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(ProductPrice::class);
+    }
+
+    /** Preço para uma tabela específica (customizado ou calculado pelo %) */
+    public function priceForList(int $priceListId): int
+    {
+        $custom = $this->prices()->where('price_list_id', $priceListId)->first();
+        if ($custom) {
+            return $custom->price_cents;
+        }
+
+        $list = PriceList::find($priceListId);
+
+        return $list ? $list->applyTo($this->price_cents) : $this->price_cents;
     }
 
     public function getRouteKeyName(): string

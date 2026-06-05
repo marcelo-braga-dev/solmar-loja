@@ -41,6 +41,7 @@ class HandleInertiaRequests extends Middleware
             'cartCount'     => fn () => $this->resolveCartCount($request),
             'notifyCount'   => fn () => $this->resolveNotifyCount($request),
             'branding'      => fn () => $this->resolveBranding(),
+            'priceList'     => fn () => $this->resolvePriceList($request),
         ];
     }
 
@@ -104,6 +105,32 @@ class HandleInertiaRequests extends Middleware
             return $user->unreadNotifications()->count();
         } catch (\Throwable) {
             return 0;
+        }
+    }
+
+    /** @return array<string, mixed>|null */
+    private function resolvePriceList(Request $request): ?array
+    {
+        try {
+            $user = $request->user();
+            if (! $user) {
+                return null;
+            }
+
+            $list = $user->effectivePriceList();
+            if (! $list) {
+                return null;
+            }
+
+            return [
+                'id'               => $list->id,
+                'name'             => $list->name,
+                'code'             => $list->code,
+                'discount_percent' => $list->discount_percent,
+                'type'             => $list->type,
+            ];
+        } catch (\Throwable) {
+            return null;
         }
     }
 

@@ -2,13 +2,14 @@ import { Head, useForm, router } from '@inertiajs/react';
 import {
     Box, Button, Card, CardContent, CardActions, Grid, Typography, Stack,
     Dialog, DialogTitle, DialogContent, DialogActions as MuiDialogActions,
-    TextField, Chip,
+    TextField, Chip, Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { useState } from 'react';
 import AccountLayout from '@/Layouts/AccountLayout';
+import CepField from '@/Components/ui/CepField';
 import type { PageProps } from '@inertiajs/react';
 
 interface AddressData {
@@ -44,18 +45,6 @@ export default function Addresses({ addresses }: Props) {
         is_default_shipping: true,
         is_default_billing: false,
     });
-
-    const fetchCep = async (cep: string) => {
-        const clean = cep.replace(/\D/g, '');
-        if (clean.length !== 8) return;
-        try {
-            const res = await fetch(`https://viacep.com.br/ws/${clean}/json/`);
-            const info = await res.json();
-            if (!info.erro) {
-                setData((prev) => ({ ...prev, street: info.logradouro, district: info.bairro, city: info.localidade, state: info.uf }));
-            }
-        } catch {}
-    };
 
     return (
         <AccountLayout title="Meus Endereços">
@@ -104,39 +93,100 @@ export default function Addresses({ addresses }: Props) {
                     <Box component="form" sx={{ mt: 1 }}>
                         <Grid container spacing={2}>
                             <Grid size={{ xs: 12, sm: 6 }}>
-                                <TextField label="Apelido (ex: Casa)" value={data.label} onChange={(e) => setData('label', e.target.value)} fullWidth size="small" />
+                                <TextField
+                                    label="Apelido (ex: Casa, Trabalho)"
+                                    value={data.label}
+                                    onChange={(e) => setData('label', e.target.value)}
+                                    fullWidth size="small"
+                                    placeholder="Casa"
+                                />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 6 }}>
-                                <TextField label="Destinatário *" value={data.recipient} onChange={(e) => setData('recipient', e.target.value)} error={!!errors.recipient} helperText={errors.recipient} fullWidth size="small" />
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 4 }}>
                                 <TextField
-                                    label="CEP *"
-                                    value={data.cep}
-                                    onChange={(e) => { setData('cep', e.target.value); fetchCep(e.target.value); }}
-                                    error={!!errors.cep}
-                                    helperText={errors.cep}
+                                    label="Destinatário *"
+                                    value={data.recipient}
+                                    onChange={(e) => setData('recipient', e.target.value)}
+                                    error={!!errors.recipient}
+                                    helperText={errors.recipient}
                                     fullWidth size="small"
-                                    placeholder="00000-000"
+                                />
+                            </Grid>
+
+                            {/* CEP com auto-preenchimento */}
+                            <Grid size={{ xs: 12, sm: 4 }}>
+                                <CepField
+                                    value={data.cep}
+                                    onChange={(masked) => setData('cep', masked)}
+                                    onFill={(info) => setData((prev) => ({
+                                        ...prev,
+                                        street:   info.logradouro || prev.street,
+                                        district: info.bairro     || prev.district,
+                                        city:     info.localidade,
+                                        state:    info.uf,
+                                    }))}
+                                    error={errors.cep}
+                                    required
                                 />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 8 }}>
-                                <TextField label="Rua / Avenida *" value={data.street} onChange={(e) => setData('street', e.target.value)} error={!!errors.street} helperText={errors.street} fullWidth size="small" />
+                                <TextField
+                                    label="Rua / Avenida *"
+                                    value={data.street}
+                                    onChange={(e) => setData('street', e.target.value)}
+                                    error={!!errors.street}
+                                    helperText={errors.street}
+                                    fullWidth size="small"
+                                />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 4 }}>
-                                <TextField label="Número *" value={data.number} onChange={(e) => setData('number', e.target.value)} error={!!errors.number} helperText={errors.number} fullWidth size="small" />
+                                <TextField
+                                    label="Número *"
+                                    value={data.number}
+                                    onChange={(e) => setData('number', e.target.value)}
+                                    error={!!errors.number}
+                                    helperText={errors.number}
+                                    fullWidth size="small"
+                                />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 8 }}>
-                                <TextField label="Complemento" value={data.complement} onChange={(e) => setData('complement', e.target.value)} fullWidth size="small" />
+                                <TextField
+                                    label="Complemento"
+                                    value={data.complement}
+                                    onChange={(e) => setData('complement', e.target.value)}
+                                    fullWidth size="small"
+                                    placeholder="Apto, Bloco, etc."
+                                />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 6 }}>
-                                <TextField label="Bairro *" value={data.district} onChange={(e) => setData('district', e.target.value)} error={!!errors.district} helperText={errors.district} fullWidth size="small" />
+                                <TextField
+                                    label="Bairro *"
+                                    value={data.district}
+                                    onChange={(e) => setData('district', e.target.value)}
+                                    error={!!errors.district}
+                                    helperText={errors.district}
+                                    fullWidth size="small"
+                                />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 4 }}>
-                                <TextField label="Cidade *" value={data.city} onChange={(e) => setData('city', e.target.value)} error={!!errors.city} helperText={errors.city} fullWidth size="small" />
+                                <TextField
+                                    label="Cidade *"
+                                    value={data.city}
+                                    onChange={(e) => setData('city', e.target.value)}
+                                    error={!!errors.city}
+                                    helperText={errors.city}
+                                    fullWidth size="small"
+                                />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 2 }}>
-                                <TextField label="UF *" value={data.state} onChange={(e) => setData('state', e.target.value.toUpperCase())} error={!!errors.state} helperText={errors.state} fullWidth size="small" slotProps={{ htmlInput: { maxLength: 2 } }} />
+                                <TextField
+                                    label="UF *"
+                                    value={data.state}
+                                    onChange={(e) => setData('state', e.target.value.toUpperCase().slice(0, 2))}
+                                    error={!!errors.state}
+                                    helperText={errors.state}
+                                    fullWidth size="small"
+                                    slotProps={{ htmlInput: { maxLength: 2 } }}
+                                />
                             </Grid>
                         </Grid>
                     </Box>
@@ -148,7 +198,7 @@ export default function Addresses({ addresses }: Props) {
                         disabled={processing}
                         onClick={() => post('/conta/enderecos', { onSuccess: () => { setOpen(false); reset(); } })}
                     >
-                        {processing ? 'Salvando...' : 'Salvar'}
+                        {processing ? 'Salvando...' : 'Salvar Endereço'}
                     </Button>
                 </MuiDialogActions>
             </Dialog>

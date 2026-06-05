@@ -8,6 +8,7 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@inertiajs/react';
 import { useState } from 'react';
+import { maskPhone, maskCnpj } from '@/Lib/masks';
 
 interface SettingItem {
     id: number;
@@ -64,9 +65,16 @@ export default function SettingsIndex({ groups }: Props) {
     const [processing, setProcessing] = useState(false);
     const [saved, setSaved] = useState(false);
 
+    // Campos com máscara automática
+    const MASKED_FIELDS: Record<string, (v: string) => string> = {
+        store_phone: maskPhone,
+        store_cnpj:  maskCnpj,
+    };
+
     // Atualiza apenas o campo alterado sem afetar os outros
     const handleChange = (key: string, value: string) => {
-        setValues((prev) => ({ ...prev, [key]: value }));
+        const masked = MASKED_FIELDS[key] ? MASKED_FIELDS[key](value) : value;
+        setValues((prev) => ({ ...prev, [key]: masked }));
         setSaved(false);
     };
 

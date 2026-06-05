@@ -29,6 +29,21 @@ use App\Http\Controllers\Storefront\CategoryController as StorefrontCategoryCont
 use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\HomeController;
 use App\Http\Controllers\Storefront\BlogController as StorefrontBlogController;
+use App\Http\Controllers\Admin\BulkProductController;
+use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\Admin\PriceListController;
+use App\Http\Controllers\Consultant\DashboardController as ConsultantDashboard;
+use App\Http\Controllers\Storefront\B2bController;
+use App\Http\Controllers\Admin\QuoteAdminController;
+use App\Http\Controllers\Admin\ReturnAdminController;
+use App\Http\Controllers\Admin\SupportTicketAdminController;
+use App\Http\Controllers\Storefront\QuoteController;
+use App\Http\Controllers\Storefront\ReturnController;
+use App\Http\Controllers\Storefront\SocialiteController;
+use App\Http\Controllers\Storefront\SupportTicketController;
+use App\Http\Controllers\Admin\FlashSaleController as AdminFlashSaleController;
+use App\Http\Controllers\Admin\IntegrationController;
+use App\Http\Controllers\Admin\ProductImportController;
 use App\Http\Controllers\Admin\NewsletterAdminController;
 use App\Http\Controllers\Storefront\NewsletterController;
 use App\Http\Controllers\Storefront\StaticPageController;
@@ -37,6 +52,9 @@ use App\Http\Controllers\Storefront\ProductController as StorefrontProductContro
 use App\Http\Controllers\Storefront\ReviewController;
 use App\Http\Controllers\Storefront\SimulatorController;
 use App\Http\Controllers\Storefront\SearchController;
+use App\Http\Controllers\Storefront\CompareController;
+use App\Http\Controllers\Storefront\KitBuilderController;
+use App\Http\Controllers\Storefront\StockAlertController;
 use App\Http\Controllers\Storefront\WebhookController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +91,49 @@ Route::get('/simulador', [SimulatorController::class, 'index'])->name('simulator
 Route::post('/api/simulator/calculate', [SimulatorController::class, 'calculate'])
     ->middleware('throttle:30,1')
     ->name('simulator.calculate');
+
+// ─── Painel do Consultor ─────────────────────────────────────────────────────
+
+Route::middleware(['auth', 'verified', 'consultant'])->prefix('consultor')->name('consultor.')->group(function (): void {
+    Route::get('/', ConsultantDashboard::class)->name('dashboard');
+});
+
+// ─── Portal B2B (Integradoras / Distribuidoras) ───────────────────────────────
+
+Route::get('/portal-b2b', [B2bController::class, 'landing'])->name('b2b.landing');
+
+Route::middleware(['auth', 'verified'])->prefix('portal-b2b')->name('b2b.')->group(function (): void {
+    Route::get('/cadastrar', [B2bController::class, 'register'])->name('register');
+    Route::post('/cadastrar', [B2bController::class, 'store'])->name('store');
+    Route::get('/dashboard', [B2bController::class, 'dashboard'])->name('dashboard');
+    Route::get('/projetos', [B2bController::class, 'projects'])->name('projects');
+    Route::post('/projetos', [B2bController::class, 'storeProject'])->name('projects.store');
+});
+
+// Cotação / Orçamento
+Route::post('/cotacao', [QuoteController::class, 'store'])->name('quotes.store')->middleware('throttle:10,1');
+Route::middleware(['auth', 'verified'])->get('/conta/cotacoes', [QuoteController::class, 'index'])->name('account.quotes');
+
+// Login Social
+Route::middleware('guest')->group(function (): void {
+    Route::get('/auth/google', [SocialiteController::class, 'redirectToGoogle'])->name('auth.google');
+    Route::get('/auth/google/callback', [SocialiteController::class, 'handleGoogleCallback'])->name('auth.google.callback');
+});
+
+// Flash Sale ativa (público — para verificar no frontend)
+Route::get('/api/flash-sale/{product}', [AdminFlashSaleController::class, 'activeForProduct'])->name('flash-sale.product');
+
+// Comparação de produtos
+Route::get('/comparar', [CompareController::class, 'index'])->name('compare.index');
+
+// Kit Builder
+Route::get('/monte-seu-kit', [KitBuilderController::class, 'index'])->name('kit-builder.index');
+Route::get('/api/kit-builder/inverters', [KitBuilderController::class, 'inverters'])->name('kit-builder.inverters');
+Route::get('/api/kit-builder/accessories', [KitBuilderController::class, 'accessories'])->name('kit-builder.accessories');
+
+// Alertas de Volta ao Estoque
+Route::post('/produtos/{product}/alertas', [StockAlertController::class, 'subscribe'])->name('stock-alert.subscribe')->middleware('throttle:10,1');
+Route::get('/alertas/cancelar/{token}', [StockAlertController::class, 'unsubscribe'])->name('stock-alert.unsubscribe');
 
 // Newsletter
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
@@ -158,6 +219,18 @@ Route::middleware(['auth', 'verified'])->prefix('conta')->name('account.')->grou
     Route::delete('/enderecos/{address}', [AccountController::class, 'destroyAddress'])->name('addresses.destroy');
 
     Route::get('/seguranca', [AccountController::class, 'security'])->name('security');
+
+    // Devoluções
+    Route::get('/devolucoes', [ReturnController::class, 'index'])->name('returns.index');
+    Route::get('/devolucoes/criar', [ReturnController::class, 'create'])->name('returns.create');
+    Route::post('/devolucoes', [ReturnController::class, 'store'])->name('returns.store');
+
+    // Suporte / Tickets
+    Route::get('/suporte', [SupportTicketController::class, 'index'])->name('tickets.index');
+    Route::get('/suporte/criar', [SupportTicketController::class, 'create'])->name('tickets.create');
+    Route::post('/suporte', [SupportTicketController::class, 'store'])->name('tickets.store');
+    Route::get('/suporte/{ticket:uuid}', [SupportTicketController::class, 'show'])->name('tickets.show');
+    Route::post('/suporte/{ticket:uuid}/reply', [SupportTicketController::class, 'reply'])->name('tickets.reply');
 
     Route::get('/favoritos', [AccountController::class, 'favorites'])->name('favorites');
     Route::post('/favoritos/toggle', [AccountController::class, 'toggleFavorite'])->name('favorites.toggle');
@@ -257,6 +330,60 @@ Route::middleware(['auth', 'admin', 'two-factor'])->prefix('admin')->name('admin
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::patch('notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+
+    // Tabelas de Preço
+    Route::get('price-lists', [PriceListController::class, 'index'])->name('price-lists.index');
+    Route::post('price-lists', [PriceListController::class, 'store'])->name('price-lists.store');
+    Route::put('price-lists/{priceList}', [PriceListController::class, 'update'])->name('price-lists.update');
+    Route::delete('price-lists/{priceList}', [PriceListController::class, 'destroy'])->name('price-lists.destroy');
+    Route::post('price-lists/product-price', [PriceListController::class, 'setProductPrice'])->name('price-lists.product-price.set');
+    Route::delete('price-lists/product-price', [PriceListController::class, 'removeProductPrice'])->name('price-lists.product-price.remove');
+    Route::get('price-lists/product/{product}/prices', [PriceListController::class, 'productPrices'])->name('price-lists.product-prices');
+
+    // Empresas B2B
+    Route::get('companies', [CompanyController::class, 'index'])->name('companies.index');
+    Route::get('companies/{company:uuid}', [CompanyController::class, 'show'])->name('companies.show');
+    Route::post('companies/{company:uuid}/approve', [CompanyController::class, 'approve'])->name('companies.approve');
+    Route::post('companies/{company:uuid}/reject', [CompanyController::class, 'reject'])->name('companies.reject');
+    Route::post('companies/{company:uuid}/suspend', [CompanyController::class, 'suspend'])->name('companies.suspend');
+    Route::put('companies/{company:uuid}/commercial', [CompanyController::class, 'updateCommercial'])->name('companies.commercial');
+
+    // Cotações admin
+    Route::get('quotes', [QuoteAdminController::class, 'index'])->name('quotes.index');
+    Route::get('quotes/{quote:uuid}', [QuoteAdminController::class, 'show'])->name('quotes.show');
+    Route::put('quotes/{quote:uuid}', [QuoteAdminController::class, 'update'])->name('quotes.update');
+
+    // Devoluções admin
+    Route::get('returns', [ReturnAdminController::class, 'index'])->name('returns.index');
+    Route::get('returns/{return:uuid}', [ReturnAdminController::class, 'show'])->name('returns.show');
+    Route::patch('returns/{return:uuid}/status', [ReturnAdminController::class, 'updateStatus'])->name('returns.status');
+
+    // Suporte admin
+    Route::get('tickets', [SupportTicketAdminController::class, 'index'])->name('tickets.index');
+    Route::get('tickets/{ticket:uuid}', [SupportTicketAdminController::class, 'show'])->name('tickets.show');
+    Route::post('tickets/{ticket:uuid}/reply', [SupportTicketAdminController::class, 'reply'])->name('tickets.reply');
+    Route::patch('tickets/{ticket:uuid}/status', [SupportTicketAdminController::class, 'updateStatus'])->name('tickets.status');
+
+    // Bulk actions nos produtos
+    Route::post('products/bulk', [BulkProductController::class, 'bulk'])->name('products.bulk');
+
+    // Flash Sales
+    Route::get('flash-sales', [AdminFlashSaleController::class, 'index'])->name('flash-sales.index');
+    Route::post('flash-sales', [AdminFlashSaleController::class, 'store'])->name('flash-sales.store');
+    Route::patch('flash-sales/{flashSale}/toggle', [AdminFlashSaleController::class, 'toggle'])->name('flash-sales.toggle');
+    Route::delete('flash-sales/{flashSale}', [AdminFlashSaleController::class, 'destroy'])->name('flash-sales.destroy');
+
+    // Importação CSV de produtos
+    Route::get('products/import', [ProductImportController::class, 'index'])->name('products.import');
+    Route::post('products/import', [ProductImportController::class, 'store'])->name('products.import.store');
+    Route::get('products/import/template', [ProductImportController::class, 'template'])->name('products.import.template');
+
+    // Integração / ERP
+    Route::get('integration', [IntegrationController::class, 'index'])->name('integration.index');
+    Route::post('integration/test-connection', [IntegrationController::class, 'testConnection'])->name('integration.test');
+    Route::post('integration/sync', [IntegrationController::class, 'runSync'])->name('integration.sync');
+    Route::delete('integration/logs', [IntegrationController::class, 'clearLogs'])->name('integration.logs.clear');
+    Route::get('integration/schema', [IntegrationController::class, 'downloadSchema'])->name('integration.schema');
 
     // Newsletter
     Route::get('newsletter', [NewsletterAdminController::class, 'index'])->name('newsletter.index');

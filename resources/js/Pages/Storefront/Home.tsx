@@ -1,14 +1,17 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import {
-    Box, Container, Typography, Button, Stack, Grid,
-    Paper, Chip, Avatar,
-} from '@mui/material';
+import { Box, Container, Typography, Button, Stack, Grid, Paper, Avatar, Chip, alpha } from '@mui/material';
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import PaymentIcon from '@mui/icons-material/Payment';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import HeadsetMicIcon from '@mui/icons-material/HeadsetMic';
 import SecurityIcon from '@mui/icons-material/Security';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import BoltIcon from '@mui/icons-material/Bolt';
+import Co2Icon from '@mui/icons-material/Co2';
+import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
+import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
+import StarIcon from '@mui/icons-material/Star';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
 import ProductCard from '@/Components/storefront/ProductCard';
 import type { PageProps } from '@inertiajs/react';
@@ -22,9 +25,36 @@ interface Props extends PageProps {
     brands: Brand[];
 }
 
-function formatBRLShort(cents: number): string {
+function formatBRLShort(cents: number) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(cents / 100);
 }
+
+// Mapa de ícones/gradientes por slug de categoria
+const CAT_STYLE: Record<string, { emoji: string; gradient: string; color: string }> = {
+    'energia-solar':            { emoji: '☀️', gradient: 'linear-gradient(135deg,#FF8C00,#FFB300)', color: '#FF8C00' },
+    'kits-fotovoltaicos':       { emoji: '📦', gradient: 'linear-gradient(135deg,#0B5FFF,#4D8DFF)', color: '#0B5FFF' },
+    'paineis-modulos-solares':  { emoji: '🔆', gradient: 'linear-gradient(135deg,#059669,#34D399)', color: '#059669' },
+    'inversores':               { emoji: '⚡', gradient: 'linear-gradient(135deg,#7C3AED,#A78BFA)', color: '#7C3AED' },
+    'baterias-e-armazenamento': { emoji: '🔋', gradient: 'linear-gradient(135deg,#DC2626,#F87171)', color: '#DC2626' },
+    'estruturas-de-fixacao':    { emoji: '🏗️', gradient: 'linear-gradient(135deg,#EA580C,#FB923C)', color: '#EA580C' },
+    'cabos-e-conectores':       { emoji: '🔌', gradient: 'linear-gradient(135deg,#0284C7,#38BDF8)', color: '#0284C7' },
+    'monitoramento':            { emoji: '📊', gradient: 'linear-gradient(135deg,#0F766E,#2DD4BF)', color: '#0F766E' },
+    'mobilidade-eletrica':      { emoji: '🚗', gradient: 'linear-gradient(135deg,#1D4ED8,#60A5FA)', color: '#1D4ED8' },
+    'iluminacao-led':           { emoji: '💡', gradient: 'linear-gradient(135deg,#B45309,#FCD34D)', color: '#B45309' },
+};
+
+const TESTIMONIALS = [
+    { name: 'Roberto Alves', city: 'São Paulo, SP', text: 'Comprei um kit solar completo e a economia na conta de luz foi incrível. Em 4 anos já se pagou! Suporte técnico excelente.', rating: 5, product: 'Kit 5kWp On-Grid' },
+    { name: 'Maria Fernanda', city: 'Belo Horizonte, MG', text: 'Atendimento impecável. Os painéis chegaram antes do prazo e a qualidade é superior. Recomendo para qualquer pessoa querendo energia solar.', rating: 5, product: 'Painel Solar 550W' },
+    { name: 'Carlos Eduardo', city: 'Curitiba, PR', text: 'A plataforma é muito fácil de usar. Fiz a cotação, tirei dúvidas pelo chat e recebi tudo em perfeito estado. Nota 10!', rating: 5, product: 'Inversor Fronius 5kW' },
+];
+
+const STATS = [
+    { value: '15.000+', label: 'Clientes atendidos', icon: <HeadsetMicIcon sx={{ fontSize: 28 }} /> },
+    { value: '50 MW+', label: 'Instalados no Brasil', icon: <SolarPowerIcon sx={{ fontSize: 28 }} /> },
+    { value: '12.000+', label: 'Pedidos entregues', icon: <LocalShippingIcon sx={{ fontSize: 28 }} /> },
+    { value: '25 anos', label: 'Garantia de geração', icon: <VerifiedIcon sx={{ fontSize: 28 }} /> },
+];
 
 export default function Home({ featuredProducts, onSaleProducts, mainCategories, brands }: Props) {
     const { branding } = usePage<SharedProps>().props;
@@ -32,84 +62,200 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
     const freeShippingEnabled = branding?.free_shipping_enabled ?? true;
 
     const BENEFITS = [
-        { icon: <LocalShippingIcon />, title: 'Frete Grátis', desc: freeShippingEnabled ? `Nas compras acima de ${formatBRLShort(freeShippingMin)}` : 'Consulte condições' },
-        { icon: <PaymentIcon />, title: 'Parcele em 12x', desc: 'Sem juros no cartão de crédito' },
-        { icon: <VerifiedIcon />, title: 'Garantia do Fabricante', desc: 'Produtos originais certificados' },
-        { icon: <HeadsetMicIcon />, title: 'Suporte Técnico', desc: 'Especialistas em energia solar' },
-        { icon: <SecurityIcon />, title: 'Compra Segura', desc: 'Pagamento criptografado SSL' },
+        { icon: <LocalShippingIcon />, title: 'Frete Grátis', desc: freeShippingEnabled ? `Acima de ${formatBRLShort(freeShippingMin)}` : 'Consulte condições' },
+        { icon: <PaymentIcon />,       title: 'Parcele em 12x', desc: 'Sem juros no cartão' },
+        { icon: <VerifiedIcon />,      title: 'Garantia Total', desc: 'Produtos originais' },
+        { icon: <HeadsetMicIcon />,    title: 'Suporte Solar', desc: 'Especialistas disponíveis' },
+        { icon: <SecurityIcon />,      title: 'Compra Segura', desc: 'SSL & antifraude' },
     ];
 
     return (
         <StorefrontLayout>
-            <Head title="Início — Energia Solar no Brasil" />
+            <Head title="Início — SolarHub Commerce" />
 
-            {/* Hero */}
-            <Box
-                sx={{
-                    background: 'linear-gradient(135deg, #0B5FFF 0%, #0040CC 60%, #003399 100%)',
-                    color: 'white',
-                    py: { xs: 8, md: 12 },
-                    position: 'relative',
-                    overflow: 'hidden',
-                }}
-            >
-                <Box
-                    sx={{
-                        position: 'absolute', inset: 0, opacity: 0.05,
-                        backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)',
-                        backgroundSize: '20px 20px',
-                    }}
-                />
+            {/* ── HERO ──────────────────────────────────────────────────────── */}
+            <Box sx={{
+                background: 'linear-gradient(135deg, #0D1B3E 0%, #0B3D91 40%, #0B5FFF 100%)',
+                color: 'white',
+                pt: { xs: 10, md: 14 },
+                pb: { xs: 8, md: 12 },
+                position: 'relative', overflow: 'hidden',
+            }}>
+                {/* Anéis decorativos */}
+                {[500, 750, 1000].map((size, i) => (
+                    <Box key={i} sx={{
+                        position: 'absolute',
+                        width: size, height: size,
+                        borderRadius: '50%',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        top: '50%', left: '60%',
+                        transform: 'translate(-50%,-50%)',
+                        display: { xs: 'none', md: 'block' },
+                    }} />
+                ))}
+                {/* Grid overlay */}
+                <Box sx={{
+                    position: 'absolute', inset: 0, opacity: 0.04,
+                    backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)',
+                    backgroundSize: '40px 40px',
+                }} />
+
                 <Container maxWidth="lg" sx={{ position: 'relative' }}>
-                    <Stack spacing={4} sx={{ alignItems: 'center', textAlign: 'center' }}>
-                        <SolarPowerIcon sx={{ fontSize: 72, color: '#FFB300' }} />
-                        <Box>
-                            <Typography variant="h2" component="h1" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: '2rem', md: '3.5rem' } }}>
-                                Energia Solar para o Brasil
+                    <Grid container spacing={6} sx={{ alignItems: 'center' }}>
+                        <Grid size={{ xs: 12, md: 7 }}>
+                            <Chip
+                                label="🇧🇷 A maior plataforma solar do Brasil"
+                                sx={{ bgcolor: 'rgba(255,179,0,0.18)', color: '#FFD54F', fontWeight: 600, mb: 3, fontSize: 12, border: '1px solid rgba(255,179,0,0.25)' }}
+                            />
+                            <Typography variant="h1" sx={{
+                                fontWeight: 900, lineHeight: 1.05,
+                                fontSize: { xs: '2.4rem', sm: '3rem', md: '3.8rem' },
+                                mb: 2,
+                                letterSpacing: '-1px',
+                            }}>
+                                Energia Solar<br />
+                                <Box component="span" sx={{
+                                    background: 'linear-gradient(90deg,#FFB300,#FFD54F)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}>
+                                    para todo o Brasil
+                                </Box>
                             </Typography>
-                            <Typography variant="h5" sx={{ opacity: 0.85, maxWidth: 640, mx: 'auto', fontWeight: 400 }}>
-                                Painéis solares, inversores, kits completos e tudo que você precisa para gerar sua própria energia.
+                            <Typography sx={{ fontSize: { xs: 16, md: 18 }, opacity: 0.8, mb: 4, maxWidth: 520, lineHeight: 1.7 }}>
+                                Painéis solares, inversores, kits fotovoltaicos completos e tudo que você precisa para gerar sua própria energia limpa e economizar na conta de luz.
                             </Typography>
-                        </Box>
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                            <Button
-                                component={Link}
-                                href="/categorias/energia-solar"
-                                variant="contained"
-                                size="large"
-                                sx={{ bgcolor: '#FFB300', color: '#1A1A1A', fontWeight: 700, px: 4, '&:hover': { bgcolor: '#e6a200' } }}
-                            >
-                                Ver Catálogo Completo
-                            </Button>
-                            <Button
-                                variant="outlined"
-                                size="large"
-                                sx={{ borderColor: 'rgba(255,255,255,0.6)', color: 'white', px: 4, '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', borderColor: 'white' } }}
-                            >
-                                Simular Economia
-                            </Button>
-                        </Stack>
-                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-                            {['Frete Grátis', 'Parcelamento em 12x', 'Garantia Fabricante', 'Suporte Especializado'].map((label) => (
-                                <Chip key={label} label={label} sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'white', fontWeight: 500 }} />
-                            ))}
-                        </Stack>
-                    </Stack>
+
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
+                                <Button
+                                    component={Link}
+                                    href="/categorias/energia-solar"
+                                    variant="contained"
+                                    size="large"
+                                    endIcon={<ArrowForwardIcon />}
+                                    sx={{
+                                        bgcolor: '#FFB300', color: '#1A1A1A', fontWeight: 800,
+                                        px: 4, py: 1.6, fontSize: 16, borderRadius: 2,
+                                        boxShadow: '0 8px 24px rgba(255,179,0,0.4)',
+                                        '&:hover': { bgcolor: '#e6a200', transform: 'translateY(-1px)', boxShadow: '0 12px 28px rgba(255,179,0,0.5)' },
+                                        transition: 'all 0.2s',
+                                    }}
+                                >
+                                    Ver Catálogo
+                                </Button>
+                                <Button
+                                    component={Link}
+                                    href="/simulador"
+                                    variant="outlined"
+                                    size="large"
+                                    startIcon={<BoltIcon />}
+                                    sx={{
+                                        borderColor: 'rgba(255,255,255,0.4)', color: 'white',
+                                        px: 4, py: 1.6, fontSize: 16, borderRadius: 2,
+                                        '&:hover': { bgcolor: 'rgba(255,255,255,0.1)', borderColor: 'white' },
+                                    }}
+                                >
+                                    Simular Economia
+                                </Button>
+                            </Stack>
+
+                            <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+                                {[
+                                    { icon: '✓', text: 'Frete Grátis' },
+                                    { icon: '✓', text: 'Parcele em 12x' },
+                                    { icon: '✓', text: 'Entrega em todo Brasil' },
+                                ].map((item) => (
+                                    <Stack key={item.text} direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                                        <Typography sx={{ color: '#FFB300', fontWeight: 700 }}>{item.icon}</Typography>
+                                        <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: 14 }}>{item.text}</Typography>
+                                    </Stack>
+                                ))}
+                            </Stack>
+                        </Grid>
+
+                        {/* Lado direito — visual */}
+                        <Grid size={{ xs: 12, md: 5 }} sx={{ display: { xs: 'none', md: 'flex' }, justifyContent: 'center' }}>
+                            <Box sx={{ position: 'relative', width: 380, height: 380 }}>
+                                {/* Glow */}
+                                <Box sx={{
+                                    position: 'absolute', inset: '-20%',
+                                    borderRadius: '50%',
+                                    background: 'radial-gradient(circle, rgba(255,179,0,0.25) 0%, transparent 70%)',
+                                }} />
+                                {/* Sol central */}
+                                <Box sx={{
+                                    position: 'absolute', inset: 0,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}>
+                                    <Box sx={{
+                                        width: 180, height: 180, borderRadius: '50%',
+                                        background: 'radial-gradient(circle,#FFD54F 0%,#FFB300 60%,rgba(255,179,0,0.3) 100%)',
+                                        boxShadow: '0 0 80px rgba(255,179,0,0.6), 0 0 160px rgba(255,179,0,0.2)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        animation: 'spin 20s linear infinite',
+                                        '@keyframes spin': { from: { transform: 'rotate(0deg)' }, to: { transform: 'rotate(360deg)' } },
+                                    }}>
+                                        <SolarPowerIcon sx={{ fontSize: 72, color: 'white', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.2))', animation: 'spin 20s linear infinite reverse' }} />
+                                    </Box>
+                                </Box>
+                                {/* Badges flutuantes */}
+                                {[
+                                    { top: '10%', right: '-5%', icon: <Co2Icon />, label: '-85%', sub: 'menos CO₂' },
+                                    { bottom: '15%', left: '-8%', icon: <BoltIcon />, label: '25 anos', sub: 'de garantia' },
+                                    { top: '55%', right: '-10%', icon: <EmojiNatureIcon />, label: 'R$ 0', sub: 'de ICMS solar' },
+                                ].map((badge, i) => (
+                                    <Box key={i} sx={{
+                                        position: 'absolute',
+                                        top: badge.top, bottom: badge.bottom,
+                                        left: badge.left, right: badge.right,
+                                        bgcolor: 'rgba(255,255,255,0.12)',
+                                        backdropFilter: 'blur(12px)',
+                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        borderRadius: 2.5, px: 1.5, py: 1,
+                                        display: 'flex', alignItems: 'center', gap: 1,
+                                        minWidth: 120,
+                                    }}>
+                                        <Box sx={{ color: '#FFB300' }}>{badge.icon}</Box>
+                                        <Box>
+                                            <Typography sx={{ color: 'white', fontWeight: 800, fontSize: 15, lineHeight: 1 }}>{badge.label}</Typography>
+                                            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>{badge.sub}</Typography>
+                                        </Box>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </Grid>
+                    </Grid>
                 </Container>
             </Box>
 
-            {/* Benefícios */}
-            <Box sx={{ bgcolor: 'white', py: 3, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            {/* ── BENEFITS BAR ──────────────────────────────────────────────── */}
+            <Box sx={{ bgcolor: 'white', borderBottom: '1px solid', borderColor: 'divider', py: 0 }}>
                 <Container maxWidth="lg">
-                    <Grid container spacing={2} sx={{ justifyContent: 'center' }}>
-                        {BENEFITS.map((b) => (
-                            <Grid key={b.title} size={{ xs: 6, sm: 4, md: 'auto' }}>
-                                <Stack sx={{ alignItems: 'center', textAlign: 'center', px: 2, py: 1 }}>
-                                    <Avatar sx={{ bgcolor: 'primary.light', color: 'primary.contrastText', mb: 1, width: 44, height: 44 }}>
+                    <Grid container>
+                        {BENEFITS.map((b, i) => (
+                            <Grid key={b.title} size={{ xs: 6, md: 'grow' }}>
+                                <Stack
+                                    direction="row"
+                                    spacing={1.5}
+                                    sx={{
+                                        alignItems: 'center', py: 2.5, px: 2,
+                                        borderRight: i < BENEFITS.length - 1 ? '1px solid' : 'none',
+                                        borderColor: 'divider',
+                                    }}
+                                >
+                                    <Box sx={{
+                                        width: 40, height: 40, borderRadius: 2,
+                                        bgcolor: alpha('#0B5FFF', 0.08),
+                                        color: 'primary.main',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        flexShrink: 0,
+                                    }}>
                                         {b.icon}
-                                    </Avatar>
-                                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{b.title}</Typography>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{b.desc}</Typography>
+                                    </Box>
+                                    <Box>
+                                        <Typography sx={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1.2 }}>{b.title}</Typography>
+                                        <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.3 }}>{b.desc}</Typography>
+                                    </Box>
                                 </Stack>
                             </Grid>
                         ))}
@@ -117,50 +263,113 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                 </Container>
             </Box>
 
-            {/* Categorias principais */}
-            {mainCategories.length > 0 && (
-                <Container maxWidth="lg" sx={{ py: 6 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>Categorias</Typography>
-                    <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>
-                        Encontre tudo para o seu sistema de energia solar
-                    </Typography>
-                    <Grid container spacing={2.5}>
-                        {mainCategories.map((cat) => (
-                            <Grid key={cat.id} size={{ xs: 6, sm: 4, md: 3, lg: 3 }}>
-                                <Paper
-                                    component={Link}
-                                    href={`/categorias/${cat.slug}`}
-                                    elevation={0}
-                                    sx={{
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                        justifyContent: 'center', p: 3, textAlign: 'center',
-                                        border: '1px solid', borderColor: 'divider', borderRadius: 3,
-                                        textDecoration: 'none', color: 'inherit', minHeight: 120,
-                                        transition: 'all 0.2s', cursor: 'pointer',
-                                        '&:hover': { borderColor: 'primary.main', bgcolor: 'primary.50', transform: 'translateY(-2px)', boxShadow: 2 },
-                                    }}
-                                >
-                                    <Typography variant="h4" component="span" sx={{ mb: 1 }}>
-                                        ☀️
+            {/* ── STATS ─────────────────────────────────────────────────────── */}
+            <Box sx={{
+                background: 'linear-gradient(135deg, #0D1B3E 0%, #0B3D91 100%)',
+                py: 5,
+            }}>
+                <Container maxWidth="lg">
+                    <Grid container spacing={2}>
+                        {STATS.map((s) => (
+                            <Grid key={s.label} size={{ xs: 6, md: 3 }}>
+                                <Stack sx={{ alignItems: 'center', textAlign: 'center', py: 1 }}>
+                                    <Box sx={{ color: '#FFB300', mb: 1 }}>{s.icon}</Box>
+                                    <Typography sx={{ color: 'white', fontWeight: 900, fontSize: { xs: 24, md: 32 }, lineHeight: 1 }}>
+                                        {s.value}
                                     </Typography>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{cat.name}</Typography>
-                                </Paper>
+                                    <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, mt: 0.5 }}>
+                                        {s.label}
+                                    </Typography>
+                                </Stack>
                             </Grid>
                         ))}
                     </Grid>
                 </Container>
+            </Box>
+
+            {/* ── CATEGORIAS ────────────────────────────────────────────────── */}
+            {mainCategories.length > 0 && (
+                <Box sx={{ py: 8, bgcolor: '#F8F9FC' }}>
+                    <Container maxWidth="lg">
+                        <Box sx={{ textAlign: 'center', mb: 5 }}>
+                            <Chip label="Nosso Catálogo" color="primary" size="small" sx={{ mb: 1.5, fontWeight: 600 }} />
+                            <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.5px' }}>
+                                O que você está procurando?
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', fontSize: 16, maxWidth: 480, mx: 'auto' }}>
+                                Encontre tudo para o seu sistema de energia solar em um só lugar
+                            </Typography>
+                        </Box>
+                        <Grid container spacing={2.5}>
+                            {mainCategories.map((cat) => {
+                                const style = CAT_STYLE[cat.slug] ?? { emoji: '⚡', gradient: 'linear-gradient(135deg,#0B5FFF,#4D8DFF)', color: '#0B5FFF' };
+                                return (
+                                    <Grid key={cat.id} size={{ xs: 6, sm: 4, md: 3 }}>
+                                        <Box
+                                            component={Link}
+                                            href={`/categorias/${cat.slug}`}
+                                            sx={{
+                                                display: 'block', textDecoration: 'none',
+                                                borderRadius: 3, overflow: 'hidden',
+                                                border: '1px solid rgba(0,0,0,0.06)',
+                                                bgcolor: 'white',
+                                                transition: 'all 0.2s',
+                                                '&:hover': {
+                                                    transform: 'translateY(-4px)',
+                                                    boxShadow: `0 12px 40px ${alpha(style.color, 0.18)}`,
+                                                    '& .cat-gradient': { transform: 'scale(1.08)' },
+                                                },
+                                            }}
+                                        >
+                                            <Box
+                                                className="cat-gradient"
+                                                sx={{
+                                                    background: style.gradient,
+                                                    height: 90,
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    transition: 'transform 0.3s',
+                                                    fontSize: 42,
+                                                }}
+                                            >
+                                                {style.emoji}
+                                            </Box>
+                                            <Box sx={{ p: 2 }}>
+                                                <Typography sx={{ fontWeight: 700, fontSize: 14, color: 'text.primary', lineHeight: 1.3 }}>
+                                                    {cat.name}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: 12, color: style.color, fontWeight: 600, mt: 0.5 }}>
+                                                    Ver produtos →
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    </Grid>
+                                );
+                            })}
+                        </Grid>
+                    </Container>
+                </Box>
             )}
 
-            {/* Ofertas */}
+            {/* ── OFERTAS ───────────────────────────────────────────────────── */}
             {onSaleProducts.length > 0 && (
-                <Box sx={{ bgcolor: 'error.50', py: 6 }}>
+                <Box sx={{ py: 8, bgcolor: 'white' }}>
                     <Container maxWidth="lg">
-                        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'flex-end' }, mb: 5 }}>
                             <Box>
-                                <Typography variant="h4" sx={{ fontWeight: 800 }}>🔥 Ofertas Especiais</Typography>
-                                <Typography variant="body1" sx={{ color: 'text.secondary' }}>Preços imperdíveis por tempo limitado</Typography>
+                                <Chip label="🔥 Promoções" sx={{ bgcolor: alpha('#DC2626', 0.08), color: '#DC2626', fontWeight: 700, mb: 1 }} />
+                                <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+                                    Ofertas Especiais
+                                </Typography>
+                                <Typography sx={{ color: 'text.secondary', mt: 0.5 }}>
+                                    Preços imperdíveis por tempo limitado
+                                </Typography>
                             </Box>
-                            <Button component={Link} href="/ofertas" variant="outlined" color="error">
+                            <Button
+                                component={Link}
+                                href="/categorias/energia-solar"
+                                endIcon={<ArrowForwardIcon />}
+                                sx={{ mt: { xs: 2, sm: 0 }, fontWeight: 600 }}
+                            >
                                 Ver todas
                             </Button>
                         </Stack>
@@ -175,75 +384,155 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                 </Box>
             )}
 
-            {/* Produtos em destaque */}
+            {/* ── DESTAQUES ─────────────────────────────────────────────────── */}
             {featuredProducts.length > 0 && (
-                <Container maxWidth="lg" sx={{ py: 6 }}>
-                    <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-                        <Box>
-                            <Typography variant="h4" sx={{ fontWeight: 800 }}>⭐ Destaques</Typography>
-                            <Typography variant="body1" sx={{ color: 'text.secondary' }}>Produtos mais buscados e avaliados</Typography>
-                        </Box>
-                        <Button component={Link} href="/categorias/energia-solar" variant="outlined">
-                            Ver catálogo
-                        </Button>
-                    </Stack>
-                    <Grid container spacing={3}>
-                        {featuredProducts.map((product) => (
-                            <Grid key={product.id} size={{ xs: 12, sm: 6, md: 4, lg: 4 }}>
-                                <ProductCard product={product} />
-                            </Grid>
-                        ))}
-                    </Grid>
-                </Container>
-            )}
-
-            {/* Marcas */}
-            {brands.length > 0 && (
-                <Box sx={{ bgcolor: 'grey.50', py: 6 }}>
+                <Box sx={{ py: 8, bgcolor: '#F8F9FC' }}>
                     <Container maxWidth="lg">
-                        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1, textAlign: 'center' }}>
-                            Marcas Parceiras
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', mb: 4 }}>
-                            Trabalhamos com os maiores fabricantes do mundo
-                        </Typography>
-                        <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 2, justifyContent: 'center' }}>
-                            {brands.map((brand) => (
-                                <Paper
-                                    key={brand.id}
-                                    component={Link}
-                                    href={`/marcas/${brand.slug}`}
-                                    elevation={0}
-                                    sx={{
-                                        px: 3, py: 1.5, border: '1px solid', borderColor: 'divider',
-                                        borderRadius: 2, textDecoration: 'none', color: 'text.secondary',
-                                        fontWeight: 600, fontSize: 14,
-                                        '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
-                                        transition: 'all 0.2s',
-                                    }}
-                                >
-                                    {brand.name}
-                                </Paper>
-                            ))}
+                        <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'flex-end' }, mb: 5 }}>
+                            <Box>
+                                <Chip label="⭐ Top Produtos" sx={{ bgcolor: alpha('#F59E0B', 0.1), color: '#B45309', fontWeight: 700, mb: 1 }} />
+                                <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+                                    Mais Vendidos
+                                </Typography>
+                                <Typography sx={{ color: 'text.secondary', mt: 0.5 }}>
+                                    Os produtos mais escolhidos pelos nossos clientes
+                                </Typography>
+                            </Box>
+                            <Button
+                                component={Link}
+                                href="/categorias/energia-solar"
+                                endIcon={<ArrowForwardIcon />}
+                                sx={{ mt: { xs: 2, sm: 0 }, fontWeight: 600 }}
+                            >
+                                Ver catálogo
+                            </Button>
                         </Stack>
+                        <Grid container spacing={3}>
+                            {featuredProducts.map((product) => (
+                                <Grid key={product.id} size={{ xs: 12, sm: 6, md: 4, lg: 4 }}>
+                                    <ProductCard product={product} />
+                                </Grid>
+                            ))}
+                        </Grid>
                     </Container>
                 </Box>
             )}
 
-            {/* CTA final */}
-            <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 8, textAlign: 'center' }}>
-                <Container maxWidth="md">
-                    <Typography variant="h4" sx={{ fontWeight: 800, mb: 2 }}>
-                        Pronto para economizar na conta de luz?
+            {/* ── MARCAS ────────────────────────────────────────────────────── */}
+            {brands.length > 0 && (
+                <Box sx={{ py: 6, bgcolor: 'white', borderTop: '1px solid', borderColor: 'divider' }}>
+                    <Container maxWidth="lg">
+                        <Typography sx={{ textAlign: 'center', color: 'text.secondary', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5, mb: 3 }}>
+                            Marcas Parceiras
+                        </Typography>
+                        <Box sx={{
+                            display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center',
+                        }}>
+                            {brands.map((brand) => (
+                                <Box
+                                    key={brand.id}
+                                    sx={{
+                                        px: 3, py: 1.5,
+                                        border: '1px solid', borderColor: 'divider',
+                                        borderRadius: 2,
+                                        bgcolor: 'white',
+                                        color: 'text.secondary',
+                                        fontWeight: 700, fontSize: 14,
+                                        transition: 'all 0.15s',
+                                        cursor: 'default',
+                                        '&:hover': {
+                                            borderColor: 'primary.main',
+                                            color: 'primary.main',
+                                            bgcolor: alpha('#0B5FFF', 0.04),
+                                        },
+                                    }}
+                                >
+                                    {brand.name}
+                                </Box>
+                            ))}
+                        </Box>
+                    </Container>
+                </Box>
+            )}
+
+            {/* ── TESTIMONIAIS ──────────────────────────────────────────────── */}
+            <Box sx={{ py: 8, bgcolor: '#F8F9FC' }}>
+                <Container maxWidth="lg">
+                    <Box sx={{ textAlign: 'center', mb: 5 }}>
+                        <Chip label="💬 Avaliações" color="success" size="small" sx={{ mb: 1.5, fontWeight: 600 }} />
+                        <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.5px' }}>
+                            O que nossos clientes dizem
+                        </Typography>
+                        <Stack direction="row" spacing={0.3} sx={{ justifyContent: 'center', mt: 1.5 }}>
+                            {[...Array(5)].map((_, i) => (
+                                <StarIcon key={i} sx={{ color: '#FFB300', fontSize: 20 }} />
+                            ))}
+                            <Typography sx={{ ml: 1, color: 'text.secondary', fontSize: 14 }}>4,9 de 5 (1.200+ avaliações)</Typography>
+                        </Stack>
+                    </Box>
+                    <Grid container spacing={3}>
+                        {TESTIMONIALS.map((t, i) => (
+                            <Grid key={i} size={{ xs: 12, md: 4 }}>
+                                <Paper elevation={0} sx={{
+                                    p: 3, borderRadius: 3, height: '100%',
+                                    border: '1px solid rgba(0,0,0,0.06)',
+                                    bgcolor: 'white',
+                                    transition: 'all 0.2s',
+                                    '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 32px rgba(0,0,0,0.08)' },
+                                }}>
+                                    <FormatQuoteIcon sx={{ fontSize: 36, color: alpha('#0B5FFF', 0.15), mb: 1 }} />
+                                    <Typography sx={{ color: 'text.primary', lineHeight: 1.7, mb: 2.5, fontSize: 15 }}>
+                                        "{t.text}"
+                                    </Typography>
+                                    <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                                        <Box>
+                                            <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{t.name}</Typography>
+                                            <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>{t.city}</Typography>
+                                        </Box>
+                                        <Stack direction="row" spacing={0.2}>
+                                            {[...Array(t.rating)].map((_, j) => (
+                                                <StarIcon key={j} sx={{ fontSize: 14, color: '#FFB300' }} />
+                                            ))}
+                                        </Stack>
+                                    </Box>
+                                    <Chip label={t.product} size="small" sx={{ mt: 1.5, fontSize: 11, bgcolor: alpha('#0B5FFF', 0.06), color: 'primary.main', fontWeight: 600 }} />
+                                </Paper>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Container>
+            </Box>
+
+            {/* ── CTA FINAL ─────────────────────────────────────────────────── */}
+            <Box sx={{
+                background: 'linear-gradient(135deg, #0D1B3E 0%, #0B3D91 50%, #0B5FFF 100%)',
+                py: { xs: 8, md: 12 },
+                position: 'relative', overflow: 'hidden',
+            }}>
+                <Box sx={{
+                    position: 'absolute', inset: 0, opacity: 0.06,
+                    backgroundImage: 'radial-gradient(circle at 30% 50%, rgba(255,255,255,0.8) 0%, transparent 60%)',
+                }} />
+                <Container maxWidth="md" sx={{ position: 'relative', textAlign: 'center' }}>
+                    <Typography variant="h2" sx={{ color: 'white', fontWeight: 900, mb: 2, fontSize: { xs: '2rem', md: '3rem' }, letterSpacing: '-1px' }}>
+                        Pronto para economizar<br />na conta de luz?
                     </Typography>
-                    <Typography variant="h6" sx={{ opacity: 0.9, mb: 4, fontWeight: 400 }}>
-                        Simule agora mesmo a economia que você terá com energia solar.
+                    <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 18, mb: 5, maxWidth: 480, mx: 'auto', lineHeight: 1.7 }}>
+                        Simule agora mesmo quanto você vai economizar com energia solar. Resultado em segundos, sem compromisso.
                     </Typography>
-                    <Stack direction="row" spacing={2} sx={{ justifyContent: 'center' }}>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center' }}>
                         <Button
+                            component={Link}
+                            href="/simulador"
                             size="large"
                             variant="contained"
-                            sx={{ bgcolor: '#FFB300', color: '#1A1A1A', fontWeight: 700, px: 5 }}
+                            startIcon={<BoltIcon />}
+                            sx={{
+                                bgcolor: '#FFB300', color: '#1A1A1A', fontWeight: 800,
+                                px: 5, py: 1.8, fontSize: 17, borderRadius: 2,
+                                boxShadow: '0 8px 24px rgba(255,179,0,0.4)',
+                                '&:hover': { bgcolor: '#e6a200' },
+                            }}
                         >
                             Simular Agora
                         </Button>
@@ -252,9 +541,14 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                             href="/categorias/kits-fotovoltaicos"
                             size="large"
                             variant="outlined"
-                            sx={{ borderColor: 'white', color: 'white', px: 5 }}
+                            endIcon={<ArrowForwardIcon />}
+                            sx={{
+                                borderColor: 'rgba(255,255,255,0.4)', color: 'white',
+                                px: 5, py: 1.8, fontSize: 17, borderRadius: 2,
+                                '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', borderColor: 'white' },
+                            }}
                         >
-                            Ver Kits
+                            Ver Kits Solares
                         </Button>
                     </Stack>
                 </Container>

@@ -54,4 +54,11 @@ return [
         'enabled'  => env('ERP_SYNC_ENABLED', false),
     ],
 
+    // Google OAuth (Socialite)
+    'google' => [
+        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect'      => env('GOOGLE_REDIRECT_URL', '/auth/google/callback'),
+    ],
+
 ];

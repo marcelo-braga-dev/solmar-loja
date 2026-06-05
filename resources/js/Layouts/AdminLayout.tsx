@@ -9,12 +9,18 @@ import {
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import PeopleIcon from '@mui/icons-material/People';
 import CategoryIcon from '@mui/icons-material/Category';
 import BrandingWatermarkIcon from '@mui/icons-material/BrandingWatermark';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
+import SyncIcon from '@mui/icons-material/Sync';
+import BoltIcon from '@mui/icons-material/Bolt';
+import HeadsetMicIcon from '@mui/icons-material/HeadsetMic';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import BusinessIcon from '@mui/icons-material/Business';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import ArticleIcon from '@mui/icons-material/Article';
 import StarIcon from '@mui/icons-material/Star';
@@ -48,6 +54,7 @@ const NAV_SECTIONS: NavSection[] = [
         title: 'Catálogo',
         items: [
             { label: 'Produtos', icon: <InventoryIcon fontSize="small" />, href: '/admin/products' },
+            { label: 'Importar CSV', icon: <FileUploadIcon fontSize="small" />, href: '/admin/products/import' },
             { label: 'Categorias', icon: <CategoryIcon fontSize="small" />, href: '/admin/categories' },
             { label: 'Marcas', icon: <BrandingWatermarkIcon fontSize="small" />, href: '/admin/brands' },
         ],
@@ -69,6 +76,7 @@ const NAV_SECTIONS: NavSection[] = [
         title: 'Marketing',
         items: [
             { label: 'Cupons', icon: <ConfirmationNumberIcon fontSize="small" />, href: '/admin/coupons' },
+            { label: 'Flash Sales', icon: <BoltIcon fontSize="small" />, href: '/admin/flash-sales' },
             { label: 'Blog — Posts', icon: <ArticleIcon fontSize="small" />, href: '/admin/posts' },
             { label: 'Blog — Categorias', icon: <ArticleIcon fontSize="small" />, href: '/admin/post-categories' },
             { label: 'Avaliações', icon: <StarIcon fontSize="small" />, href: '/admin/reviews' },
@@ -79,6 +87,27 @@ const NAV_SECTIONS: NavSection[] = [
         title: 'Análises',
         items: [
             { label: 'Relatórios', icon: <BarChartIcon fontSize="small" />, href: '/admin/reports' },
+        ],
+    },
+    {
+        title: 'Portal B2B',
+        items: [
+            { label: 'Empresas',       icon: <BusinessIcon fontSize="small" />,   href: '/admin/companies' },
+            { label: 'Tabelas de Preço', icon: <LocalOfferIcon fontSize="small" />, href: '/admin/price-lists' },
+        ],
+    },
+    {
+        title: 'Atendimento',
+        items: [
+            { label: 'Suporte / Tickets', icon: <HeadsetMicIcon fontSize="small" />, href: '/admin/tickets' },
+            { label: 'Cotações', icon: <ConfirmationNumberIcon fontSize="small" />, href: '/admin/quotes' },
+            { label: 'Devoluções / RMA', icon: <InventoryOutlinedIcon fontSize="small" />, href: '/admin/returns' },
+        ],
+    },
+    {
+        title: 'Integrações',
+        items: [
+            { label: 'ERP / API Externa', icon: <SyncIcon fontSize="small" />, href: '/admin/integration' },
         ],
     },
     {

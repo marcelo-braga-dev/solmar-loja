@@ -59,6 +59,7 @@ final class CategoryController extends Controller
                 'id'                     => $p->id,
                 'name'                   => $p->name,
                 'slug'                   => $p->slug,
+                'sku'                    => $p->sku,
                 'price_cents'            => $p->price_cents,
                 'compare_at_price_cents' => $p->compare_at_price_cents,
                 'has_discount'           => $p->hasDiscount(),

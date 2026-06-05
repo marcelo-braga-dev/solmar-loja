@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Box, Container, Typography, Grid, Paper, Stack, Button,
     TextField, Select, MenuItem, InputLabel, FormControl,
@@ -11,7 +11,9 @@ import BoltIcon from '@mui/icons-material/Bolt';
 import Co2Icon from '@mui/icons-material/Co2';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import CalculateIcon from '@mui/icons-material/Calculate';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import { useState } from 'react';
+import type { SharedProps } from '@/Types/inertia';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
 import { formatBRL } from '@/Lib/formatters';
 import axios from '@/Lib/axios';
@@ -41,7 +43,114 @@ const STATES = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT'
 
 const STEPS = ['Consumo', 'Localização', 'Resultado'];
 
+function generateProposalPDF(result: SimulatorResult, branding: { store_name?: string; store_email?: string; store_phone?: string }) {
+    const storeName = branding?.store_name ?? 'SolarHub Commerce';
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Proposta Solar — ${storeName}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:Arial,sans-serif; }
+    body { padding:40px; color:#1A1A2E; font-size:13px; }
+    .header { background:linear-gradient(135deg,#0D1B3E,#0B5FFF); color:white; padding:32px; border-radius:12px; margin-bottom:24px; }
+    .logo { font-size:26px; font-weight:900; margin-bottom:4px; }
+    .logo span { color:#FFB300; }
+    .tagline { opacity:0.7; font-size:12px; }
+    .section { margin-bottom:24px; page-break-inside:avoid; }
+    .section-title { font-size:15px; font-weight:800; color:#0B5FFF; border-left:4px solid #0B5FFF; padding-left:10px; margin-bottom:14px; }
+    .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+    .kpi { border:1px solid #E5E7EB; border-radius:10px; padding:16px; text-align:center; }
+    .kpi-value { font-size:22px; font-weight:900; color:#0B5FFF; }
+    .kpi-label { font-size:11px; color:#666; margin-top:4px; }
+    table { width:100%; border-collapse:collapse; }
+    th { background:#F3F4F6; font-size:11px; font-weight:700; text-transform:uppercase; color:#666; padding:10px 12px; text-align:left; }
+    td { padding:10px 12px; border-bottom:1px solid #F3F4F6; }
+    tr:last-child td { border-bottom:none; }
+    .highlight { background:#F0F7FF; font-weight:700; }
+    .footer { margin-top:32px; border-top:2px solid #0B5FFF; padding-top:16px; display:flex; justify-content:space-between; font-size:11px; color:#666; }
+    .badge { display:inline-block; background:#F0F7FF; color:#0B5FFF; border:1px solid #BBD6FF; border-radius:6px; padding:4px 10px; font-size:11px; font-weight:700; margin-right:6px; }
+    @media print { body { padding:24px; } .header { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">${storeName.split(' ')[0]}<span>${storeName.split(' ').slice(1).join(' ')}</span></div>
+    <div class="tagline">Proposta de Sistema Solar Fotovoltaico • ${new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' })}</div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="kpi-value">R$ ${(result.result.monthly_savings_cents/100).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="kpi-label">Economia mensal estimada</div></div>
+    <div class="kpi"><div class="kpi-value">${result.result.system_power_kwp} kWp</div><div class="kpi-label">Potência do sistema</div></div>
+    <div class="kpi"><div class="kpi-value">${result.result.payback_years ?? '—'} anos</div><div class="kpi-label">Payback estimado</div></div>
+    <div class="kpi"><div class="kpi-value">${result.result.co2_saved_kg_year} kg</div><div class="kpi-label">CO₂ evitado por ano</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📊 Dados do Consumo</div>
+    <table>
+      <tr><td><b>Consumo mensal informado</b></td><td>${result.input.monthly_kwh} kWh/mês</td></tr>
+      <tr><td><b>Estado de instalação</b></td><td>${result.input.state}</td></tr>
+      <tr><td><b>Tipo de telhado</b></td><td>${result.input.roof_type}</td></tr>
+      <tr><td><b>Irradiância solar local</b></td><td>${result.result.irradiance} kWh/m²/dia</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">⚡ Sistema Dimensionado</div>
+    <table>
+      <tr class="highlight"><td><b>Potência total do sistema</b></td><td><b>${result.result.system_power_kwp} kWp</b></td></tr>
+      <tr><td>Número de painéis solares</td><td>${result.result.panel_count} painéis de ${result.result.panel_power_w}W</td></tr>
+      <tr><td>Área de telhado necessária</td><td>${result.result.roof_area_m2} m²</td></tr>
+      <tr><td>Geração anual estimada</td><td>${result.result.annual_generation_kwh.toLocaleString('pt-BR')} kWh/ano</td></tr>
+      <tr><td>Geração mensal estimada</td><td>${Math.round(result.result.annual_generation_kwh/12).toLocaleString('pt-BR')} kWh/mês</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">💰 Análise Financeira</div>
+    <table>
+      <tr><td>Conta de luz atual estimada</td><td>R$ ${result.result.monthly_bill_estimate.toFixed(2)}/mês</td></tr>
+      <tr><td>Economia mensal estimada</td><td>R$ ${(result.result.monthly_savings_cents/100).toFixed(2)}/mês</td></tr>
+      <tr><td>Economia anual estimada</td><td>R$ ${(result.result.annual_savings_cents/100).toFixed(2)}/ano</td></tr>
+      <tr class="highlight"><td><b>Investimento estimado</b></td><td><b>R$ ${(result.result.system_cost_cents/100).toLocaleString('pt-BR',{minimumFractionDigits:2})}</b></td></tr>
+      <tr class="highlight"><td><b>Payback estimado</b></td><td><b>${result.result.payback_years ? result.result.payback_years + ' anos' : 'Solicitar orçamento personalizado'}</b></td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">🌱 Impacto Ambiental (25 anos de geração)</div>
+    <table>
+      <tr><td>CO₂ evitado por ano</td><td>${result.result.co2_saved_kg_year} kg de CO₂</td></tr>
+      <tr><td>CO₂ evitado em 25 anos</td><td>${(result.result.co2_saved_kg_year * 25).toLocaleString('pt-BR')} kg de CO₂</td></tr>
+      <tr><td>Equivalente a árvores plantadas</td><td>≈ ${Math.round(result.result.co2_saved_kg_year * 25 / 22)} árvores</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div style="background:#FFF8E1;border:1px solid #FFB300;border-radius:8px;padding:14px;">
+      <b>⚠️ Observações importantes:</b><br>
+      <small>${result.disclaimer}</small>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>${storeName} • ${branding?.store_email ?? ''} • ${branding?.store_phone ?? ''}</div>
+    <div>Proposta válida por 30 dias • Sujeita a avaliação técnica do local</div>
+  </div>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 600);
+}
+
 export default function Simulator(_props: PageProps) {
+    const { branding } = usePage<SharedProps>().props;
     const [step, setStep] = useState(0);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<SimulatorResult | null>(null);
@@ -239,12 +348,21 @@ export default function Simulator(_props: PageProps) {
                             <Typography variant="body2">{result.disclaimer}</Typography>
                         </Alert>
 
-                        <Stack direction="row" spacing={2}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                             <Button variant="outlined" onClick={() => { setStep(0); setResult(null); setForm({ monthly_kwh: '', state: '', roof_type: 'ceramic' }); }} sx={{ flex: 1 }}>
                                 Nova simulação
                             </Button>
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                startIcon={<PictureAsPdfIcon />}
+                                onClick={() => result && generateProposalPDF(result, branding ?? {})}
+                                sx={{ flex: 1, fontWeight: 700 }}
+                            >
+                                Gerar Proposta PDF
+                            </Button>
                             <Button component={Link as ElementType} href="/categorias/kits-fotovoltaicos" variant="contained" sx={{ flex: 2, fontWeight: 700 }}>
-                                Ver todos os kits solares
+                                Ver kits solares
                             </Button>
                         </Stack>
                     </Stack>

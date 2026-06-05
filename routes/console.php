@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Jobs\AbandonedCartRecoveryJob;
 use App\Jobs\SyncInventoryJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -20,6 +21,9 @@ Artisan::command('inventory:sync', function () {
     SyncInventoryJob::dispatch();
     $this->info('Job despachado para a fila "sync".');
 })->purpose('Dispatch inventory sync job');
+
+// Recuperação de carrinhos abandonados — a cada hora
+Schedule::job(new AbandonedCartRecoveryJob())->hourly()->name('abandoned-cart-recovery')->withoutOverlapping();
 
 // Limpar expirations (reservas vencidas, etc.)
 Schedule::command('queue:prune-failed --hours=72')->daily();

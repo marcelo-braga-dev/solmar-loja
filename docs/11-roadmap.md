@@ -1,183 +1,136 @@
 # 11 — Roadmap e Status
 
-Guia de ordem de construção e status atual. Cada fase entrega valor e mantém o sistema sempre funcional e testado.
+Guia de fases de construção e status atual da plataforma. Todas as fases originais estão concluídas, mais dezenas de extras.
 
 ---
 
 ## Status Global: Plataforma MVP+ Completa ✅
 
 | Fase | Descrição | Status |
-|------|-----------|--------|
-| 0 | Fundação (infra, DI, temas, layouts) | ✅ Completo |
-| 1 | Catálogo (produtos, categorias, busca) | ✅ Completo |
-| 2 | Auth + Clientes (2FA, favoritos, endereços) | ✅ Completo |
-| 3 | Carrinho + Checkout | ✅ Completo |
-| 4 | Pagamentos (Pix, Boleto, Cartão, Asaas) | ✅ Completo |
-| 5 | Admin Operacional (pedidos, estoque, clientes) | ✅ Completo |
-| 6 | Sincronização de Estoque (ERP, HttpErpClient) | ✅ Completo |
-| 7 | Financeiro (DRE, Fluxo de Caixa, CSV Export) | ✅ Completo |
-| 8 | Marketing (Cupons, Blog, Newsletter, Simulador, Reviews) | ✅ Completo |
-| 9 | SEO, Performance, Segurança, LGPD | ✅ Completo |
-| Extras | Notificações, 2FA Admin, Páginas institucionais, Cookie consent | ✅ Completo |
+|---|---|---|
+| 0 | Fundação (Docker, DDD, Tema, Storage) | ✅ Concluída |
+| 1 | Catálogo (Produtos, Categorias, Marcas) | ✅ Concluída |
+| 2 | Auth + Clientes + Login Social | ✅ Concluída |
+| 3 | Carrinho e Checkout | ✅ Concluída |
+| 4 | Pagamentos (Mock + Asaas) | ✅ Concluída |
+| 5 | Admin Operacional + Bulk Actions | ✅ Concluída |
+| 6 | Sync de Estoque + Alertas de Volta | ✅ Concluída |
+| 7 | Financeiro (DRE, Transações) | ✅ Concluída |
+| 8 | Marketing (Cupons, Flash Sales, Reviews+Fotos, Blog, Kit Builder) | ✅ Concluída |
+| 9 | SEO, Performance, Config, Relatórios+PDF | ✅ Concluída |
+| 10 | Tabelas de Preço (Price Lists B2B) | ✅ Concluída |
+| 11 | Painel do Consultor | ✅ Concluída |
+| 12 | Portal B2B para Integradores/Distribuidores | ✅ Concluída |
+| Extras | Ver lista completa abaixo | ✅ Implementados |
 
 ---
 
-## Fase 0 — Fundação ✅
+## Extras Implementados (Além do Roadmap Original)
 
-- Laravel 12 + Sail com MySQL, Redis, Meilisearch, Mailpit, phpMyAdmin
-- Estrutura de domínios em `app/Domains/` (13 domínios)
-- Providers: `RepositoryServiceProvider`, `EventServiceProvider`, `HorizonServiceProvider`, `TelescopeServiceProvider`
-- Value Object `Money`, tema MUI (azul `#0B5FFF`, amarelo `#FFB300`)
-- `StorefrontLayout`, `AdminLayout`, `AccountLayout`
-- `composer check` (Pint + PHPStan nível 6 + Pest)
+### Design e UX
+- [x] **Redesign completo da Homepage** — hero animado, stats section, categorias com gradiente, testimoniais
+- [x] **Redesign AdminLayout** — sidebar dark gradient, card de usuário, glassmorphism appbar
+- [x] **Redesign Dashboard Admin** — gráficos Recharts (AreaChart, BarChart, PieChart), KPIs gradiente
+- [x] **ProductCard redesign** — hover lift, overlay "Ver produto", badge destaque, feedback add-cart
+- [x] **Galeria de imagens profissional** — thumbnails verticais, zoom externo 3×, lightbox spring, sticky
+- [x] **Barra de anúncios rotativa** (AnnouncementBar)
+- [x] **Botão WhatsApp flutuante** com balão de chat
+- [x] **Frete grátis dinâmico** — lido do SettingsService, não mais hardcoded
+- [x] **Toggle Grid/Lista** na página de categoria
+- [x] **Barra de progresso de frete grátis** no carrinho
 
----
-
-## Fase 1 — Catálogo ✅
-
-- Migrations: `categories`, `brands`, `attributes`, `products`, `product_images`, `product_variants`
-- Models + Repositories + Services + DTOs para todas as entidades
-- Admin: CRUD completo (produtos, categorias, marcas, imagens com upload)
-- Storefront: Home, listagem por categoria com filtros, página de produto com galeria
-- Busca Meilisearch + autocomplete com debounce 300ms
-- `ProductCard` com favorito, botão add-to-cart e vistos recentemente
-
----
-
-## Fase 2 — Auth + Clientes ✅
-
-- Registro, login, logout, recuperação de senha, verificação de e-mail
-- 2FA TOTP para administradores (`pragmarx/google2fa-laravel`)
-- `Customer`, `Address` com busca de CEP via ViaCEP
-- Área do cliente: dashboard, perfil, endereços, favoritos, pedidos
-- 6 roles + 26 permissões via Spatie Permission
-
----
-
-## Fase 3 — Carrinho e Checkout ✅
-
-- Carrinho para visitante + logado com merge pós-login
-- Cupons (3 tipos: percentual, fixo, frete grátis)
-- Checkout com seleção de endereço salvo ou novo
-- Segurança: IDOR fix (CartItem verifica ownership antes de update/destroy)
-
----
-
-## Fase 4 — Pagamentos ✅
-
-- `PaymentGatewayInterface` com `MockGateway` (dev) e `AsaasGateway` (produção)
-- Pix com QR Code SVG, Boleto, Cartão de crédito
-- Webhooks idempotentes com verificação de assinatura (Asaas: header `asaas-access-token`)
-- Eventos: `PaymentApproved` → baixa estoque + cria transação financeira
+### Funcionalidades de Negócio
+- [x] **Comparação de Produtos** — hook + barra + página /comparar com specs
+- [x] **Flash Sales com Countdown** — countdown por segundo, barra de unidades, banner na página do produto
+- [x] **Upsell / Frequentemente Comprados Juntos** — co-ocorrência real + relações manuais
+- [x] **Cotação / Orçamento** — modal, admin, email de notificação
+- [x] **Gestão de Devoluções / RMA** — fluxo completo (5 status), fotos, admin
+- [x] **Sistema de Suporte / Tickets** — thread cliente-admin, prioridades, status flow
+- [x] **Recuperação de Carrinho Abandonado** — email automático hourly
+- [x] **Alertas de Volta ao Estoque** — subscription + email quando volta
+- [x] **Login Social Google** — merge de conta por email
+- [x] **Avaliações com Fotos** — upload até 4 fotos, galeria nas reviews
+- [x] **Gerador de Proposta Solar PDF** — HTML profissional via window.print()
+- [x] **Kit Builder Interativo** — wizard 4 passos com sidebar de total acumulado
+- [x] **Importação CSV de Produtos** — 3 modos, 15 colunas, pré-visualização, histórico
+- [x] **Bulk Actions admin** — publicar/arquivar/destacar/excluir produtos em massa
+- [x] **Social Proof** — pessoas vendo agora, vendidos no mês, urgência de estoque
+- [x] **Calculadora de Frete** — CEP, ViaCEP, PAC/SEDEX por região
+- [x] **Barra sticky Add to Cart** — aparece ao rolar >420px na página do produto
+- [x] **Integração ERP/API Externa** — painel completo com schema JSON e histórico
+- [x] **Timeline Visual de Pedido** — 5 passos com progresso animado
+- [x] **Exportação PDF de Relatórios** — HTML formatado via window.print()
+- [x] **Tabelas de Preço (Price Lists)** — 4 tabelas (Público/Consultor/Integrador/Distribuidor), desconto por %, admin CRUD, propagação automática via user/empresa/role
+- [x] **Painel do Consultor** — layout dedicado, dashboard com KPIs, meta mensal, gráfico de propostas, role `consultant`
+- [x] **Portal B2B** — cadastro de empresa por CNPJ, fluxo de aprovação, tabela de preço automática, gestão de projetos/obras
+- [x] **Propostas Comerciais (estrutura base)** — modelos Proposal + ProposalItem + Service, status flow completo, referência PROP-XXXXXX
 
 ---
 
-## Fase 5 — Admin Operacional ✅
+## Próximos Passos Sugeridos
 
-- Pedidos: listagem com filtros, detalhe, troca de status com máquina de estados
-- Clientes: perfil 360° (pedidos, endereços, total gasto)
-- Estoque: listagem + ajuste manual com `stock_movements`
-- Notificações in-app: badge real + popover (novos pedidos, estoque baixo, pagamento falho)
+### 🔴 Crítico para Produção
 
----
+| Tarefa | Esforço | Impacto |
+|---|---|---|
+| Configurar Asaas (PAYMENT_GATEWAY=asaas) | Baixo | 🔴 Crítico |
+| Configurar ERP real (ERP_BASE_URL + mapProduct()) | Médio | 🔴 Crítico |
+| Configurar Google OAuth (Google Console) | Baixo | 🟠 Alto |
+| Integração Notas Fiscais (Focus NFe / NFe.io) | Alto | 🔴 Crítico B2B |
 
-## Fase 6 — Sincronização de Estoque ✅
+### 🟠 Alta Prioridade
 
-- `ErpClientInterface` + `HttpErpClient` (cliente HTTP genérico, paginado, com cache)
-- `StockService`: reserve, release, syncFromErp com movimentações
-- `SyncInventoryJob` agendado diariamente às 03:00 via Horizon
-- `php artisan inventory:sync`
+| Tarefa | Esforço | Impacto |
+|---|---|---|
+| **Proposta Comercial — UI completa** (criar, editar, enviar, PDF, aceite público) | Alto | 🟠 Alto |
+| Testes Feature para funcionalidades novas | Alto | 🟠 Alto |
+| Email sequences pós-compra | Médio | 🟠 Alto |
+| Conciliação financeira (Asaas × pedidos) | Médio | 🟠 Alto |
+| Notificações Push (browser API) | Médio | 🟡 Médio |
 
----
+### 🟡 Média Prioridade
 
-## Fase 7 — Financeiro ✅
+| Tarefa | Esforço | Impacto |
+|---|---|---|
+| Portal B2B — Dashboard da empresa (crédito, projetos, histórico) | Médio | 🟡 Médio |
+| Portal Consultor — Lista de Clientes + Criação de Proposta | Médio | 🟡 Médio |
+| PWA (manifest.json + Service Worker) | Médio | 🟡 Médio |
+| Rastreamento Correios API (SRO) | Médio | 🟡 Médio |
+| PHPStan nível 8 | Baixo | 🟢 Baixo |
+| Wishlist compartilhável (URL pública) | Baixo | 🟡 Médio |
 
-- `Transaction`, `FinancialService` (DRE, fluxo de caixa)
-- `ExportReportJob` (CSV de pedidos ou DRE em background)
-- Dashboard de relatórios: KPIs, receita por dia, top 10 produtos, DRE, exportação CSV
+### 🟢 Baixa Prioridade / Futuro
 
----
-
-## Fase 8 — Marketing e Conteúdo ✅
-
-- Blog: `Post` (SoftDeletes, readingTime), `PostCategory` + CRUD admin completo
-- Newsletter: double opt-in, `NewsletterConfirmation` Mail, admin com exportação CSV
-- Simulador fotovoltaico (irradiância 27 estados, payback, CO₂)
-- Reviews e Q&A: moderação no admin com aprovação/rejeição/resposta oficial
-- Cupons: CRUD + toggle ativo/inativo
-
----
-
-## Fase 9 — SEO, Performance, Segurança ✅
-
-- Horizon: 4 supervisors (default, emails, payments, sync)
-- Telescope: protegido por role admin, mascaramento de dados sensíveis
-- Sitemap.xml com cache de 1h
-- Rate limiting: autocomplete (60/min), simulador (30/min)
-- Banner de cookies LGPD (consentimento por localStorage)
-- Páginas de erro 404/500/503 via Inertia (`Error.tsx`)
-
----
-
-## Extras Implementados ✅
-
-| Feature | Descrição |
-|---------|-----------|
-| 2FA Admin | TOTP com QR Code SVG, recovery codes, middleware `two-factor` |
-| Notificações in-app | Database notifications, badge real, popover com mark-as-read |
-| Webhook Asaas | Verificação de assinatura via header `asaas-access-token` |
-| Cookie consent | Banner LGPD com "Apenas essenciais" / "Aceitar todos" |
-| Produtos vistos recentemente | Hook `useTrackView` + componente `RecentlyViewed` via localStorage |
-| Páginas institucionais | `/sobre`, `/contato` (com envio de e-mail), `/privacidade` (LGPD) |
-| Newsletter no footer | Formulário nativo no rodapé da loja |
-| Admin Newsletter | Listagem de inscritos com filtros e exportação CSV |
-| Blog — Categorias admin | CRUD completo de categorias de post |
-| ProductCard melhorado | Botão favorito + add-to-cart + hover effect |
+| Tarefa | Esforço | Impacto |
+|---|---|---|
+| Busca por voz | Alto | 🟢 Baixo |
+| A/B Testing de layouts | Alto | 🟡 Médio |
+| Multi-armazém (multi-warehouse) | Alto | 🟢 Baixo |
+| Tabela de compatibilidade entre produtos | Médio | 🟡 Médio |
+| Blog com calculadora inline embutida | Alto | 🟢 Baixo |
+| Pagamento Recorrente (assinaturas) | Alto | 🟢 Baixo |
+| Gift Cards | Médio | 🟡 Médio |
 
 ---
 
-## Próximos Passos para Produção
+## Notas de Decisões Arquiteturais Tomadas
 
-1. **Configurar credenciais reais:**
-   ```env
-   PAYMENT_GATEWAY=asaas
-   ASAAS_API_KEY=sua_chave_real
-   ASAAS_ENVIRONMENT=production
-   ERP_BASE_URL=https://api.distribuidor.com.br
-   ERP_API_KEY=sua_chave
-   ERP_SYNC_ENABLED=true
-   ```
-
-2. **Adaptar `HttpErpClient::mapProduct()`** para o formato da API do distribuidor.
-
-3. **Rodar em produção:**
-   ```bash
-   php artisan migrate --force
-   php artisan db:seed --class=ProductionSeeder
-   php artisan storage:link
-   php artisan scout:import "App\Domains\Catalog\Models\Product"
-   php artisan horizon
-   ```
-
----
-
-## Futuro (pós-MVP)
-
-Marketplace · App mobile/PWA · CRM · Programa de instaladores · Cashback · IA/Chatbot · Central de projetos solares · Portais (distribuidores, representantes) · Split de pagamento · Frete com cotação real (Melhor Envio).
-
-> Arquitetura por domínios + eventos + interfaces deixa esses itens viáveis sem reescrever o núcleo.
-
----
-
-## Ordem de Implementação dentro de cada Feature
-
-1. Migration + Model + Factory
-2. DTO + Enum (se houver)
-3. Repository (interface + Eloquent) + binding
-4. Service/Action + Eventos/Listeners/Jobs
-5. Form Request + Controller + Resource
-6. Rotas + Policy/permissões
-7. Página/Componentes React (Inertia + MUI)
-8. Logs/Auditoria
-9. Testes (unit + feature)
-10. `composer check` + ajustes + doc
+| Decisão | Data | Motivo |
+|---|---|---|
+| Storage local (sem S3) | 2026-06-01 | Usuário não usa S3 — discos local suficiente |
+| MUI 9 (não 6) | 2026-06-01 | Versão mais recente disponível — `sx` prop obrigatório |
+| Vite 8 com rolldown | 2026-06-01 | Node 22 LTS instalado, máximo de performance |
+| `ReturnRequest` (não `Return`) | 2026-06-03 | PHP reserva a palavra `return` |
+| Sem `using(Pivot::class)` em favorites | 2026-06-02 | Tabela sem `updated_at` causaria erro |
+| Galeria `object-fit: cover` | 2026-06-03 | Imagens devem preencher toda a área (sem borda branca) |
+| Galeria sticky `top: 88px` | 2026-06-03 | Elimina espaço em branco — galeria acompanha scroll da info |
+| Zoom externo apenas em xl+ | 2026-06-03 | Em telas menores o painel de 500px não tem espaço |
+| Co-ocorrência para FrequentlyBought | 2026-06-03 | Dados reais de order_items com fallback manual |
+| PDF via window.print() | 2026-06-03 | Zero dependências, funciona offline, alta qualidade |
+| Google OAuth merge por email | 2026-06-03 | Evita duplicação de contas |
+| Frete grátis via SettingsService | 2026-06-02 | Admin configura sem deploy; lido via HandleInertiaRequests |
+| Consultor NÃO é "Vendedor" | 2026-06-04 | Terminologia definida pelo negócio — sempre `consultant`/Consultor |
+| `isAdmin()` retorna true para `consultant` | 2026-06-04 | Consultores podem acessar `/admin` para ver pedidos/produtos |
+| Tabela de preço por cadeia de prioridade | 2026-06-04 | Explícita → empresa → role → null (público) — máxima flexibilidade |
+| Aprovação B2B auto-atribui tabela | 2026-06-04 | Integrador → INTEGRADOR (−18%), Distribuidor → DISTRIB (−25%) |
+| Layout separado `/consultor` | 2026-06-04 | Consultor tem UX própria; não mistura com admin geral |

@@ -3,10 +3,13 @@ import {
     Box, Container, Typography, Grid, Paper, Stack,
     Slider, FormGroup, FormControlLabel, Checkbox,
     Select, MenuItem, InputLabel, FormControl,
-    Chip, Drawer, Button, Divider,
-    useMediaQuery, useTheme,
+    Chip, Drawer, Button, Divider, Avatar,
+    useMediaQuery, useTheme, Tooltip, IconButton,
 } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import GridViewIcon from '@mui/icons-material/GridView';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import { useState, useCallback } from 'react';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
 import ProductCard from '@/Components/storefront/ProductCard';
@@ -34,6 +37,7 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [drawerOpen, setDrawerOpen] = useState(false);
+    const [viewMode, setViewMode]     = useState<'grid' | 'list'>('grid');
 
     const [priceRange, setPriceRange] = useState<[number, number]>([
         filters.price_min ?? 0,
@@ -188,10 +192,31 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
                                         ))}
                                     </Select>
                                 </FormControl>
+                                {/* Toggle Grid/Lista */}
+                                <Stack direction="row" sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, overflow: 'hidden' }}>
+                                    <Tooltip title="Grade">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => setViewMode('grid')}
+                                            sx={{ borderRadius: 0, bgcolor: viewMode === 'grid' ? 'primary.main' : 'transparent', color: viewMode === 'grid' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'grid' ? 'primary.main' : 'grey.100' } }}
+                                        >
+                                            <GridViewIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title="Lista">
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => setViewMode('list')}
+                                            sx={{ borderRadius: 0, bgcolor: viewMode === 'list' ? 'primary.main' : 'transparent', color: viewMode === 'list' ? 'white' : 'text.secondary', '&:hover': { bgcolor: viewMode === 'list' ? 'primary.main' : 'grey.100' } }}
+                                        >
+                                            <ViewListIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                </Stack>
                             </Stack>
                         </Stack>
 
-                        {/* Grid de produtos */}
+                        {/* Produtos */}
                         {products.data.length === 0 ? (
                             <Paper elevation={0} sx={{ p: 6, textAlign: 'center', border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
                                 <Typography variant="h6" sx={{ color: 'text.secondary', mb: 1 }}>Nenhum produto encontrado</Typography>
@@ -202,7 +227,7 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
                                     Limpar filtros
                                 </Button>
                             </Paper>
-                        ) : (
+                        ) : viewMode === 'grid' ? (
                             <Grid container spacing={3}>
                                 {products.data.map((product) => (
                                     <Grid key={product.id} size={{ xs: 12, sm: 6, md: 6, lg: 4 }}>
@@ -210,6 +235,70 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
                                     </Grid>
                                 ))}
                             </Grid>
+                        ) : (
+                            /* Modo lista */
+                            <Stack spacing={1.5}>
+                                {products.data.map((product) => (
+                                    <Paper
+                                        key={product.id}
+                                        elevation={0}
+                                        component="a"
+                                        href={`/produtos/${product.slug}`}
+                                        sx={{
+                                            display: 'flex', alignItems: 'center', gap: 2, p: 2,
+                                            border: '1px solid rgba(0,0,0,0.07)', borderRadius: 2.5,
+                                            textDecoration: 'none', color: 'inherit',
+                                            transition: 'all 0.15s',
+                                            '&:hover': { borderColor: 'primary.main', boxShadow: '0 4px 16px rgba(11,95,255,0.1)' },
+                                        }}
+                                    >
+                                        <Avatar
+                                            src={product.cover_image ?? undefined}
+                                            variant="rounded"
+                                            sx={{ width: 80, height: 80, bgcolor: '#F8F9FA', flexShrink: 0, '& img': { objectFit: 'contain', p: 1 } }}
+                                        />
+                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                            {product.brand_name && (
+                                                <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'primary.main', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                                    {product.brand_name}
+                                                </Typography>
+                                            )}
+                                            <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.3 }} noWrap>{product.name}</Typography>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>SKU: {product.sku}</Typography>
+                                        </Box>
+                                        <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                                            {product.compare_at_price_cents && product.has_discount && (
+                                                <Typography variant="caption" sx={{ color: 'text.disabled', textDecoration: 'line-through', display: 'block' }}>
+                                                    {formatBRL(product.compare_at_price_cents)}
+                                                </Typography>
+                                            )}
+                                            <Typography sx={{ fontWeight: 900, fontSize: 18, color: product.has_discount ? '#DC2626' : 'primary.main', lineHeight: 1.1 }}>
+                                                {formatBRL(product.price_cents)}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11 }}>
+                                                12x sem juros
+                                            </Typography>
+                                            {product.has_discount && (
+                                                <Chip label={`-${product.discount_percent}%`} size="small" color="error" sx={{ mt: 0.5, fontWeight: 700, fontSize: 10, height: 18, display: 'block' }} />
+                                            )}
+                                        </Box>
+                                        <Box sx={{ flexShrink: 0, display: { xs: 'none', sm: 'block' } }}>
+                                            <Button
+                                                variant="contained"
+                                                size="small"
+                                                startIcon={<AddShoppingCartIcon />}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    router.post('/carrinho/items', { product_id: product.id, quantity: 1 }, { preserveScroll: true });
+                                                }}
+                                                sx={{ fontWeight: 700 }}
+                                            >
+                                                Comprar
+                                            </Button>
+                                        </Box>
+                                    </Paper>
+                                ))}
+                            </Stack>
                         )}
 
                         <Pagination pagination={products} />

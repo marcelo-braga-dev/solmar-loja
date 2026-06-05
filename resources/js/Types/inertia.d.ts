@@ -41,12 +41,21 @@ export interface Branding {
     free_shipping_enabled: boolean;
 }
 
+export interface PriceListInfo {
+    id: number;
+    name: string;
+    code: string;
+    discount_percent: number;
+    type: string;
+}
+
 export interface SharedProps {
     auth: Auth;
     flash: Flash;
     cartCount: number;
     notifyCount: number;
     branding: Branding;
+    priceList: PriceListInfo | null;
     [key: string]: unknown;
 }
 

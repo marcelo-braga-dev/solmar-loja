@@ -1,10 +1,11 @@
 import { useForm, usePage } from '@inertiajs/react';
 import {
     Box, Button, Divider, Paper, Rating, Stack, TextField,
-    Typography, Avatar, Chip, Alert,
+    Typography, Avatar, Chip, Alert, ImageList, ImageListItem,
 } from '@mui/material';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import { useEffect, useState } from 'react';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import { useEffect, useRef, useState } from 'react';
 import axios from '@/Lib/axios';
 import type { SharedProps } from '@/Types/inertia';
 
@@ -13,6 +14,7 @@ interface ReviewData {
     rating: number;
     title?: string;
     comment: string;
+    images?: string[];
     author: string;
     verified_purchase: boolean;
     created_at: string;
@@ -32,11 +34,21 @@ export default function ReviewSection({ productSlug, productId, avgRating = 0, t
     const [total, setTotal] = useState(totalReviews);
     const [showForm, setShowForm] = useState(false);
 
+    const fileRef = useRef<HTMLInputElement>(null);
+    const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+    const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+
     const { data, setData, post, processing, reset, errors, wasSuccessful } = useForm({
         rating: 5,
         title: '',
         comment: '',
     });
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files ?? []).slice(0, 4);
+        setPhotoFiles(files);
+        setPhotoPreviews(files.map(f => URL.createObjectURL(f)));
+    };
 
     useEffect(() => {
         axios.get(`/api/products/${productId}/reviews`).then((res) => {
@@ -48,10 +60,21 @@ export default function ReviewSection({ productSlug, productId, avgRating = 0, t
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        // Usar FormData para suportar upload de fotos
+        const fd = new FormData();
+        fd.append('rating', String(data.rating));
+        fd.append('title', data.title);
+        fd.append('comment', data.comment);
+        photoFiles.forEach(f => fd.append('images[]', f));
+
         post(`/produtos/${productSlug}/reviews`, {
+            data: fd as never,
+            forceFormData: true,
             onSuccess: () => {
                 setShowForm(false);
                 reset();
+                setPhotoFiles([]);
+                setPhotoPreviews([]);
             },
         });
     };
@@ -101,6 +124,33 @@ export default function ReviewSection({ productSlug, productId, avgRating = 0, t
                                 rows={4}
                                 size="small"
                             />
+
+                            {/* Upload de fotos */}
+                            <Box>
+                                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>Fotos (opcional, até 4)</Typography>
+                                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                                    {photoPreviews.map((src, i) => (
+                                        <Box key={i} component="img" src={src} sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 1.5, border: '1px solid', borderColor: 'divider' }} />
+                                    ))}
+                                    {photoPreviews.length < 4 && (
+                                        <Box
+                                            onClick={() => fileRef.current?.click()}
+                                            sx={{
+                                                width: 72, height: 72, border: '2px dashed', borderColor: 'divider',
+                                                borderRadius: 1.5, display: 'flex', flexDirection: 'column',
+                                                alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                                                color: 'text.disabled', fontSize: 10,
+                                                '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+                                            }}
+                                        >
+                                            <AddPhotoAlternateIcon sx={{ fontSize: 24 }} />
+                                            Foto
+                                        </Box>
+                                    )}
+                                    <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handlePhotoChange} />
+                                </Stack>
+                            </Box>
+
                             <Button type="submit" variant="contained" disabled={processing} sx={{ alignSelf: 'flex-start' }}>
                                 {processing ? 'Enviando...' : 'Enviar avaliação'}
                             </Button>
@@ -139,6 +189,20 @@ export default function ReviewSection({ productSlug, productId, avgRating = 0, t
                                 </Stack>
                                 {review.title && <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{review.title}</Typography>}
                                 <Typography variant="body2" sx={{ color: 'text.primary', lineHeight: 1.7 }}>{review.comment}</Typography>
+                                {review.images && review.images.length > 0 && (
+                                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 1 }}>
+                                        {review.images.map((img, j) => (
+                                            <Box
+                                                key={j}
+                                                component="img"
+                                                src={img}
+                                                alt={`Foto ${j + 1}`}
+                                                onClick={() => window.open(img, '_blank')}
+                                                sx={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 1.5, cursor: 'zoom-in', border: '1px solid', borderColor: 'divider', transition: 'transform 0.15s', '&:hover': { transform: 'scale(1.05)' } }}
+                                            />
+                                        ))}
+                                    </Stack>
+                                )}
                             </Stack>
                         </Box>
                     ))}

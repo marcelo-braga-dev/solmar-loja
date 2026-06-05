@@ -27,6 +27,8 @@ final class ProductController extends Controller
 
         $related = $this->productService->related($product, 6);
 
+        $frequentlyBought = $product->frequentlyBoughtWith(4);
+
         return Inertia::render('Storefront/Product', [
             'product' => [
                 'id'                     => $product->id,
@@ -63,6 +65,15 @@ final class ProductController extends Controller
                 'meta_title'       => $product->meta_title ?? $product->name,
                 'meta_description' => $product->meta_description ?? $product->short_description,
             ],
+            'frequentlyBought' => $frequentlyBought->map(fn ($p) => [
+                'id'          => $p->id,
+                'name'        => $p->name,
+                'slug'        => $p->slug,
+                'price_cents' => $p->price_cents,
+                'has_discount'=> $p->hasDiscount(),
+                'brand_name'  => $p->brand?->name,
+                'cover_image' => $p->coverImage()?->url(),
+            ]),
             'relatedProducts' => $related->map(fn ($p) => [
                 'id'                     => $p->id,
                 'name'                   => $p->name,

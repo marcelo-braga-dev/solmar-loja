@@ -4,6 +4,7 @@ import {
     TextField, Divider, Radio, RadioGroup, FormControlLabel,
     Stepper, Step, StepLabel,
 } from '@mui/material';
+import CepField from '@/Components/ui/CepField';
 import PixIcon from '@mui/icons-material/AccountBalance';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import ReceiptIcon from '@mui/icons-material/Receipt';
@@ -109,7 +110,19 @@ export default function Checkout({ cart, addresses }: Props) {
                                             <TextField label="Destinatário *" value={data.recipient} onChange={(e) => setData('recipient', e.target.value)} error={!!errors.recipient} helperText={errors.recipient} fullWidth size="small" />
                                         </Grid>
                                         <Grid size={{ xs: 12, sm: 4 }}>
-                                            <TextField label="CEP *" value={data.cep} onChange={(e) => setData('cep', e.target.value)} error={!!errors.cep} helperText={errors.cep} fullWidth size="small" />
+                                            <CepField
+                                                value={data.cep}
+                                                onChange={(masked) => setData('cep', masked)}
+                                                onFill={(info) => setData((prev) => ({
+                                                    ...prev,
+                                                    street:   info.logradouro || prev.street,
+                                                    district: info.bairro     || prev.district,
+                                                    city:     info.localidade,
+                                                    state:    info.uf,
+                                                }))}
+                                                error={errors.cep}
+                                                required
+                                            />
                                         </Grid>
                                         <Grid size={{ xs: 12, sm: 8 }}>
                                             <TextField label="Rua *" value={data.street} onChange={(e) => setData('street', e.target.value)} error={!!errors.street} helperText={errors.street} fullWidth size="small" />

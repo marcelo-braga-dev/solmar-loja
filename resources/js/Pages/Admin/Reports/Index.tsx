@@ -9,6 +9,8 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CancelIcon from '@mui/icons-material/Cancel';
 import DownloadIcon from '@mui/icons-material/Download';
+import PrintIcon from '@mui/icons-material/Print';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { formatBRL } from '@/Lib/formatters';
 import type { PageProps } from '@inertiajs/react';
@@ -30,6 +32,126 @@ interface Props extends PageProps {
     revenueByDay: DayRevenue[];
     topProducts: TopProduct[];
     dre: DreData;
+}
+
+function printReport(kpis: Props['kpis'], revenueByDay: DayRevenue[], topProducts: TopProduct[], dre: DreData, period: string) {
+    const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Relatório de Vendas — SolarHub Commerce</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { padding: 32px; color: #1A1A2E; font-size: 13px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; border-bottom: 3px solid #0B5FFF; padding-bottom: 16px; }
+    .logo { font-size: 22px; font-weight: 900; color: #0B5FFF; }
+    .logo span { color: #FFB300; }
+    .period { font-size: 11px; color: #666; margin-top: 4px; }
+    .title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .kpi { border: 1px solid #E5E7EB; border-radius: 8px; padding: 14px; text-align: center; }
+    .kpi-value { font-size: 20px; font-weight: 900; color: #0B5FFF; }
+    .kpi-label { font-size: 11px; color: #666; margin-top: 4px; }
+    .section { margin-bottom: 24px; }
+    .section-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #0B5FFF; border-left: 3px solid #0B5FFF; padding-left: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #F3F4F6; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #666; padding: 8px 10px; text-align: left; border-bottom: 2px solid #E5E7EB; }
+    td { padding: 8px 10px; border-bottom: 1px solid #F3F4F6; font-size: 12px; }
+    tr:nth-child(even) td { background: #FAFAFA; }
+    .text-right { text-align: right; }
+    .dre-positive { color: #16A34A; font-weight: 700; }
+    .dre-negative { color: #DC2626; font-weight: 700; }
+    .footer { margin-top: 32px; text-align: center; font-size: 10px; color: #999; border-top: 1px solid #E5E7EB; padding-top: 12px; }
+    @media print { body { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="logo">Solar<span>Hub</span> Commerce</div>
+      <div class="period">Período: ${period} · Gerado em: ${new Date().toLocaleString('pt-BR')}</div>
+    </div>
+    <div>
+      <div class="title">Relatório de Vendas</div>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-value">${formatBRL(kpis.revenue)}</div>
+      <div class="kpi-label">Receita Total</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value">${kpis.orders_count}</div>
+      <div class="kpi-label">Pedidos</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value">${formatBRL(kpis.avg_ticket)}</div>
+      <div class="kpi-label">Ticket Médio</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value">${kpis.canceled_count}</div>
+      <div class="kpi-label">Cancelados</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">DRE — Demonstrativo de Resultado</div>
+    <table>
+      <tr><td><b>Receita Bruta</b></td><td class="text-right dre-positive">${formatBRL(dre.gross_revenue)}</td></tr>
+      <tr><td>Despesas / Devoluções</td><td class="text-right dre-negative">${formatBRL(dre.total_expenses)}</td></tr>
+      <tr><td><b>Resultado Líquido</b></td><td class="text-right ${dre.net_result >= 0 ? 'dre-positive' : 'dre-negative'}">${formatBRL(dre.net_result)}</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Top 10 Produtos por Receita</div>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Produto</th><th class="text-right">Qtd.</th><th class="text-right">Receita</th></tr>
+      </thead>
+      <tbody>
+        ${topProducts.slice(0, 10).map((p, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${p.name}</td>
+          <td class="text-right">${p.qty}</td>
+          <td class="text-right"><b>${formatBRL(p.revenue)}</b></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Receita por Dia (últimos 30 dias)</div>
+    <table>
+      <thead>
+        <tr><th>Data</th><th class="text-right">Receita</th><th class="text-right">Pedidos</th></tr>
+      </thead>
+      <tbody>
+        ${revenueByDay.filter(d => d.revenue > 0).map(d => `
+        <tr>
+          <td>${d.date}</td>
+          <td class="text-right">${formatBRL(d.revenue)}</td>
+          <td class="text-right">${d.orders}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    SolarHub Commerce · Relatório gerado automaticamente · Dados internos e confidenciais
+  </div>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 500);
 }
 
 export default function ReportsIndex({ period, kpis, revenueByDay, topProducts, dre }: Props) {
@@ -69,13 +191,24 @@ export default function ReportsIndex({ period, kpis, revenueByDay, topProducts, 
         <AdminLayout title="Relatórios" breadcrumbs={[{ label: 'Análises' }, { label: 'Relatórios' }]}>
             <Head title="Relatórios — Admin" />
 
-            <Stack direction="row" sx={{ justifyContent: 'flex-end', mb: 3 }}>
-                <FormControl size="small" sx={{ minWidth: 160 }}>
-                    <InputLabel>Período</InputLabel>
-                    <Select value={period} label="Período" onChange={(e) => router.get('/admin/reports', { period: e.target.value })}>
-                        {PERIOD_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
-                    </Select>
-                </FormControl>
+            <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h5" sx={{ fontWeight: 800 }}>Relatórios de Vendas</Typography>
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                    <FormControl size="small" sx={{ minWidth: 160 }}>
+                        <InputLabel>Período</InputLabel>
+                        <Select value={period} label="Período" onChange={(e) => router.get('/admin/reports', { period: e.target.value })}>
+                            {PERIOD_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                        </Select>
+                    </FormControl>
+                    <Button
+                        variant="outlined"
+                        startIcon={<PictureAsPdfIcon />}
+                        onClick={() => printReport(kpis, revenueByDay, topProducts, dre, period)}
+                        size="small"
+                    >
+                        Exportar PDF
+                    </Button>
+                </Stack>
             </Stack>
 
             {/* KPIs */}

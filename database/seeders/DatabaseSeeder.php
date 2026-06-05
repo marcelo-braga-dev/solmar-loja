@@ -12,6 +12,7 @@ final class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolesAndPermissionsSeeder::class,
+            PriceListSeeder::class,
             SettingsSeeder::class,
             CatalogSeeder::class,
             RichCatalogSeeder::class,

@@ -2,7 +2,7 @@ import { Head, router, usePage } from '@inertiajs/react';
 import {
     Box, Container, Grid, Typography, Button, Chip, Divider,
     Paper, Stack, Tab, Tabs, Avatar, IconButton, Snackbar, Alert,
-    TextField, Modal, Fade, Backdrop,
+    TextField,
 } from '@mui/material';
 import ReviewSection from '@/Components/storefront/ReviewSection';
 import RecentlyViewed from '@/Components/storefront/RecentlyViewed';
@@ -14,12 +14,15 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import CloseIcon from '@mui/icons-material/Close';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ZoomInIcon from '@mui/icons-material/ZoomIn';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import { useState, useEffect, useRef } from 'react';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
+import ProductGallery from '@/Components/storefront/ProductGallery';
+import FlashSaleBanner from '@/Components/storefront/FlashSaleBanner';
+import FrequentlyBought from '@/Components/storefront/FrequentlyBought';
+import QuoteModal from '@/Components/storefront/QuoteModal';
+import SocialProof from '@/Components/storefront/SocialProof';
+import ShippingCalculator from '@/Components/storefront/ShippingCalculator';
 import Breadcrumb from '@/Components/storefront/Breadcrumb';
 import ProductCard from '@/Components/storefront/ProductCard';
 import { formatBRL, formatInstallment } from '@/Lib/formatters';
@@ -28,63 +31,58 @@ import type { SharedProps } from '@/Types/inertia';
 import type { PageProps } from '@inertiajs/react';
 import type { Product, ProductImage } from '@/Types/catalog';
 
+interface FBProduct { id: number; name: string; slug: string; price_cents: number; has_discount: boolean; brand_name: string | null; cover_image: string | null }
+
 interface Props extends PageProps {
     product: Product;
     relatedProducts: Product[];
+    frequentlyBought: FBProduct[];
 }
 
-export default function ProductPage({ product, relatedProducts }: Props) {
+export default function ProductPage({ product, relatedProducts, frequentlyBought }: Props) {
     const { auth, branding } = usePage<SharedProps>().props;
     const freeShippingMin = branding?.free_shipping_min_cents ?? 200000;
     const freeShippingEnabled = branding?.free_shipping_enabled ?? true;
-    const [activeImage, setActiveImage]   = useState(0);
+
+    // Sticky bar visibility (aparece ao rolar além de 400px)
+    const [showStickyBar, setShowStickyBar] = useState(false);
+    useEffect(() => {
+        const onScroll = () => setShowStickyBar(window.scrollY > 420);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
+    // Alerta de estoque
+    const [alertEmail, setAlertEmail]   = useState('');
+    const [alertSending, setAlertSending] = useState(false);
+    const [alertDone, setAlertDone]     = useState(false);
+
+    const sendStockAlert = async () => {
+        if (!alertEmail) return;
+        setAlertSending(true);
+        const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+        try {
+            const res = await fetch(`/produtos/${product.id}/alertas`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: alertEmail }),
+            });
+            if (res.ok) setAlertDone(true);
+        } finally {
+            setAlertSending(false);
+        }
+    };
+
     const [activeTab, setActiveTab]       = useState(0);
     const [quantity, setQuantity]         = useState(1);
     const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
     const [addingCart, setAddingCart]     = useState(false);
     const [isFavorite, setIsFavorite]     = useState(false);
+    const [quoteOpen, setQuoteOpen]       = useState(false);
     const [snackbar, setSnackbar]         = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false, message: '', severity: 'success',
     });
 
-    // Galeria — Lightbox e Zoom
-    const [lightboxOpen, setLightboxOpen] = useState(false);
-    const [lightboxIndex, setLightboxIndex] = useState(0);
-    const [zoomPos, setZoomPos] = useState<{ x: number; y: number } | null>(null);
-    const zoomRef = useRef<HTMLDivElement>(null);
-
-    const openLightbox = (index: number) => {
-        setLightboxIndex(index);
-        setLightboxOpen(true);
-    };
-
-    const lightboxPrev = useCallback(() => {
-        setLightboxIndex(prev => (prev - 1 + images.length) % images.length);
-    }, []);
-
-    const lightboxNext = useCallback(() => {
-        setLightboxIndex(prev => (prev + 1) % images.length);
-    }, []);
-
-    useEffect(() => {
-        if (!lightboxOpen) return;
-        const handler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape')      setLightboxOpen(false);
-            if (e.key === 'ArrowLeft')   lightboxPrev();
-            if (e.key === 'ArrowRight')  lightboxNext();
-        };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [lightboxOpen, lightboxPrev, lightboxNext]);
-
-    const handleZoomMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!zoomRef.current) return;
-        const rect = zoomRef.current.getBoundingClientRect();
-        setZoomPos({
-            x: ((e.clientX - rect.left) / rect.width) * 100,
-            y: ((e.clientY - rect.top) / rect.height) * 100,
-        });
-    };
 
     const handleAddToCart = () => {
         setAddingCart(true);
@@ -129,7 +127,7 @@ export default function ProductPage({ product, relatedProducts }: Props) {
     });
 
     const images: ProductImage[] = product.images ?? [];
-    const currentImage = images[activeImage];
+    const currentImage = images[0];
 
     return (
         <StorefrontLayout>
@@ -140,282 +138,19 @@ export default function ProductPage({ product, relatedProducts }: Props) {
                     <Breadcrumb crumbs={product.breadcrumbs as { name: string; slug?: string }[]} />
                 )}
 
-                <Grid container spacing={4}>
-                    {/* Galeria */}
-                    <Grid size={{ xs: 12, md: 5 }}>
-                        <Box>
-                            {/* Imagem principal com zoom */}
-                            <Box
-                                ref={zoomRef}
-                                onClick={() => currentImage && openLightbox(activeImage)}
-                                onMouseMove={handleZoomMove}
-                                onMouseLeave={() => setZoomPos(null)}
-                                sx={{
-                                    position: 'relative',
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    borderRadius: 3,
-                                    overflow: 'hidden',
-                                    mb: 2,
-                                    aspectRatio: '1/1',
-                                    bgcolor: '#F8F9FA',
-                                    cursor: 'zoom-in',
-                                    userSelect: 'none',
-                                }}
-                            >
-                                {currentImage ? (
-                                    <Box
-                                        component="img"
-                                        src={currentImage.url}
-                                        alt={currentImage.alt ?? product.name}
-                                        sx={{
-                                            position: 'absolute', inset: 0,
-                                            width: '100%', height: '100%',
-                                            objectFit: 'contain',
-                                            padding: '16px',
-                                            transition: 'transform 0.15s ease',
-                                            transform: zoomPos ? 'scale(2.2)' : 'scale(1)',
-                                            transformOrigin: zoomPos
-                                                ? `${zoomPos.x}% ${zoomPos.y}%`
-                                                : '50% 50%',
-                                            willChange: 'transform',
-                                        }}
-                                    />
-                                ) : (
-                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Sem imagem</Typography>
-                                    </Box>
-                                )}
-
-                                {/* Badge "clique para ampliar" */}
-                                {!zoomPos && currentImage && (
-                                    <Box sx={{
-                                        position: 'absolute', bottom: 10, right: 10,
-                                        display: 'flex', alignItems: 'center', gap: 0.5,
-                                        bgcolor: 'rgba(0,0,0,0.45)', color: 'white',
-                                        borderRadius: 5, px: 1.2, py: 0.4,
-                                        fontSize: 11, fontWeight: 500,
-                                        backdropFilter: 'blur(4px)',
-                                        pointerEvents: 'none',
-                                    }}>
-                                        <ZoomInIcon sx={{ fontSize: 14 }} />
-                                        Ampliar
-                                    </Box>
-                                )}
-
-                                {/* Setas de navegação */}
-                                {images.length > 1 && (
-                                    <>
-                                        <IconButton
-                                            size="small"
-                                            onClick={(e) => { e.stopPropagation(); setActiveImage(i => (i - 1 + images.length) % images.length); }}
-                                            sx={{
-                                                position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
-                                                bgcolor: 'rgba(255,255,255,0.9)', boxShadow: 2,
-                                                '&:hover': { bgcolor: 'white', transform: 'translateY(-50%) scale(1.1)' },
-                                                transition: 'all 0.15s',
-                                                opacity: zoomPos ? 0 : 1,
-                                            }}
-                                        >
-                                            <ChevronLeftIcon fontSize="small" />
-                                        </IconButton>
-                                        <IconButton
-                                            size="small"
-                                            onClick={(e) => { e.stopPropagation(); setActiveImage(i => (i + 1) % images.length); }}
-                                            sx={{
-                                                position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                                                bgcolor: 'rgba(255,255,255,0.9)', boxShadow: 2,
-                                                '&:hover': { bgcolor: 'white', transform: 'translateY(-50%) scale(1.1)' },
-                                                transition: 'all 0.15s',
-                                                opacity: zoomPos ? 0 : 1,
-                                            }}
-                                        >
-                                            <ChevronRightIcon fontSize="small" />
-                                        </IconButton>
-                                    </>
-                                )}
-                            </Box>
-
-                            {/* Thumbnails */}
-                            {images.length > 1 && (
-                                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                                    {images.map((img, i) => (
-                                        <Box
-                                            key={i}
-                                            onClick={() => setActiveImage(i)}
-                                            sx={{
-                                                width: 68, height: 68,
-                                                border: '2px solid',
-                                                borderColor: i === activeImage ? 'primary.main' : 'transparent',
-                                                borderRadius: 2, overflow: 'hidden', cursor: 'pointer',
-                                                bgcolor: '#F8F9FA',
-                                                outline: i === activeImage ? 'none' : '1px solid',
-                                                outlineColor: 'divider',
-                                                transition: 'all 0.15s',
-                                                '&:hover': { borderColor: 'primary.light', transform: 'scale(1.05)' },
-                                            }}
-                                        >
-                                            <Box
-                                                component="img"
-                                                src={img.url}
-                                                alt={img.alt ?? ''}
-                                                sx={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }}
-                                            />
-                                        </Box>
-                                    ))}
-                                </Stack>
-                            )}
-                        </Box>
+                <Grid container spacing={4} sx={{ alignItems: 'flex-start' }}>
+                    {/* ── GALERIA ─── sticky no desktop ─────────────── */}
+                    <Grid size={{ xs: 12, md: 6 }} sx={{ position: { md: 'sticky' }, top: { md: 88 } }}>
+                        <ProductGallery
+                            images={images}
+                            productName={product.name}
+                            hasDiscount={product.has_discount}
+                            discountPercent={product.discount_percent}
+                        />
                     </Grid>
 
-                    {/* ── LIGHTBOX ─────────────────────────────────── */}
-                    <Modal
-                        open={lightboxOpen}
-                        onClose={() => setLightboxOpen(false)}
-                        closeAfterTransition
-                        slots={{ backdrop: Backdrop }}
-                        slotProps={{ backdrop: { timeout: 300, sx: { bgcolor: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)' } } }}
-                        sx={{ zIndex: 1500 }}
-                    >
-                        <Fade in={lightboxOpen} timeout={250}>
-                            <Box sx={{
-                                position: 'fixed', inset: 0,
-                                display: 'flex', flexDirection: 'column',
-                                alignItems: 'center', justifyContent: 'center',
-                                outline: 'none',
-                            }}>
-                                {/* Topo: contador + fechar */}
-                                <Box sx={{
-                                    position: 'fixed', top: 0, left: 0, right: 0,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                    px: 3, py: 2,
-                                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)',
-                                    zIndex: 1,
-                                }}>
-                                    <Typography sx={{ color: 'white', fontSize: 14, fontWeight: 500, opacity: 0.8 }}>
-                                        {lightboxIndex + 1} / {images.length}
-                                    </Typography>
-                                    <Box sx={{ flex: 1, textAlign: 'center' }}>
-                                        <Typography sx={{ color: 'white', fontSize: 14, fontWeight: 600, opacity: 0.9 }} noWrap>
-                                            {product.name}
-                                        </Typography>
-                                    </Box>
-                                    <IconButton
-                                        onClick={() => setLightboxOpen(false)}
-                                        sx={{ color: 'white', bgcolor: 'rgba(255,255,255,0.1)', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}
-                                    >
-                                        <CloseIcon />
-                                    </IconButton>
-                                </Box>
-
-                                {/* Imagem central */}
-                                <Box
-                                    sx={{
-                                        flex: 1, width: '100%',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        px: { xs: 6, md: 12 }, py: 8,
-                                        position: 'relative',
-                                    }}
-                                    onClick={() => setLightboxOpen(false)}
-                                >
-                                    <Box
-                                        component="img"
-                                        src={images[lightboxIndex]?.url}
-                                        alt={images[lightboxIndex]?.alt ?? product.name}
-                                        onClick={(e) => e.stopPropagation()}
-                                        sx={{
-                                            maxWidth: '100%', maxHeight: '80vh',
-                                            objectFit: 'contain',
-                                            borderRadius: 2,
-                                            boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
-                                            transition: 'opacity 0.2s ease',
-                                            userSelect: 'none',
-                                        }}
-                                    />
-
-                                    {/* Seta esquerda */}
-                                    {images.length > 1 && (
-                                        <IconButton
-                                            onClick={(e) => { e.stopPropagation(); lightboxPrev(); }}
-                                            sx={{
-                                                position: 'absolute', left: { xs: 8, md: 24 }, top: '50%',
-                                                transform: 'translateY(-50%)',
-                                                color: 'white',
-                                                bgcolor: 'rgba(255,255,255,0.1)',
-                                                border: '1px solid rgba(255,255,255,0.2)',
-                                                backdropFilter: 'blur(8px)',
-                                                width: 48, height: 48,
-                                                '&:hover': { bgcolor: 'rgba(255,255,255,0.25)', transform: 'translateY(-50%) scale(1.08)' },
-                                                transition: 'all 0.15s',
-                                            }}
-                                        >
-                                            <ChevronLeftIcon sx={{ fontSize: 28 }} />
-                                        </IconButton>
-                                    )}
-
-                                    {/* Seta direita */}
-                                    {images.length > 1 && (
-                                        <IconButton
-                                            onClick={(e) => { e.stopPropagation(); lightboxNext(); }}
-                                            sx={{
-                                                position: 'absolute', right: { xs: 8, md: 24 }, top: '50%',
-                                                transform: 'translateY(-50%)',
-                                                color: 'white',
-                                                bgcolor: 'rgba(255,255,255,0.1)',
-                                                border: '1px solid rgba(255,255,255,0.2)',
-                                                backdropFilter: 'blur(8px)',
-                                                width: 48, height: 48,
-                                                '&:hover': { bgcolor: 'rgba(255,255,255,0.25)', transform: 'translateY(-50%) scale(1.08)' },
-                                                transition: 'all 0.15s',
-                                            }}
-                                        >
-                                            <ChevronRightIcon sx={{ fontSize: 28 }} />
-                                        </IconButton>
-                                    )}
-                                </Box>
-
-                                {/* Thumbnails do lightbox */}
-                                {images.length > 1 && (
-                                    <Box sx={{
-                                        position: 'fixed', bottom: 0, left: 0, right: 0,
-                                        display: 'flex', justifyContent: 'center', gap: 1.5,
-                                        px: 3, py: 2,
-                                        background: 'linear-gradient(to top, rgba(0,0,0,0.65), transparent)',
-                                        flexWrap: 'wrap',
-                                    }}>
-                                        {images.map((img, i) => (
-                                            <Box
-                                                key={i}
-                                                onClick={() => setLightboxIndex(i)}
-                                                sx={{
-                                                    width: 56, height: 56,
-                                                    borderRadius: 1.5,
-                                                    overflow: 'hidden',
-                                                    border: '2px solid',
-                                                    borderColor: i === lightboxIndex ? 'white' : 'rgba(255,255,255,0.2)',
-                                                    opacity: i === lightboxIndex ? 1 : 0.55,
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.15s',
-                                                    '&:hover': { opacity: 1, borderColor: 'rgba(255,255,255,0.7)' },
-                                                    bgcolor: '#111',
-                                                }}
-                                            >
-                                                <Box
-                                                    component="img"
-                                                    src={img.url}
-                                                    alt=""
-                                                    sx={{ width: '100%', height: '100%', objectFit: 'contain', padding: '3px' }}
-                                                />
-                                            </Box>
-                                        ))}
-                                    </Box>
-                                )}
-                            </Box>
-                        </Fade>
-                    </Modal>
-
                     {/* Info do produto */}
-                    <Grid size={{ xs: 12, md: 7 }}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Stack spacing={2.5}>
                             {product.brand && (
                                 <Typography variant="subtitle2" sx={{ color: 'text.secondary', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -433,6 +168,9 @@ export default function ProductPage({ product, relatedProducts }: Props) {
                                     <Chip label={`-${product.discount_percent}%`} color="error" size="small" sx={{ fontWeight: 700 }} />
                                 )}
                             </Stack>
+
+                            {/* Flash Sale Banner */}
+                            <FlashSaleBanner productId={product.id} />
 
                             <Box>
                                 {product.compare_at_price_cents && product.has_discount && (
@@ -456,6 +194,9 @@ export default function ProductPage({ product, relatedProducts }: Props) {
                                     {product.short_description}
                                 </Typography>
                             )}
+
+                            {/* Social Proof */}
+                            <SocialProof productId={product.id} />
 
                             {/* Seleção de variante */}
                             {product.variants && product.variants.length > 0 && (
@@ -521,6 +262,25 @@ export default function ProductPage({ product, relatedProducts }: Props) {
                                 >
                                     {addingCart ? 'Adicionando...' : 'Adicionar ao Carrinho'}
                                 </Button>
+
+                                {/* Botão Solicitar Cotação */}
+                                <Button
+                                    variant="outlined"
+                                    size="large"
+                                    fullWidth
+                                    onClick={() => setQuoteOpen(true)}
+                                    sx={{ fontWeight: 600, borderColor: 'divider', color: 'text.secondary', '&:hover': { borderColor: 'primary.main', color: 'primary.main', bgcolor: 'primary.50' } }}
+                                >
+                                    🧾 Solicitar Cotação (Grandes Volumes)
+                                </Button>
+
+                                {/* QuoteModal */}
+                                <QuoteModal
+                                    open={quoteOpen}
+                                    onClose={() => setQuoteOpen(false)}
+                                    items={[{ product_id: product.id, qty: quantity }]}
+                                    productName={product.name}
+                                />
                                 <Stack direction="row" spacing={1}>
                                     <Button
                                         variant="outlined"
@@ -540,6 +300,13 @@ export default function ProductPage({ product, relatedProducts }: Props) {
                                     </Button>
                                 </Stack>
                             </Stack>
+
+                            {/* Calculadora de Frete */}
+                            <ShippingCalculator
+                                weightGrams={product.weight_grams}
+                                freeShippingMin={freeShippingMin}
+                                productPriceCents={product.price_cents}
+                            />
 
                             {/* Garantias */}
                             <Paper elevation={0} sx={{ bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200', borderRadius: 2, p: 2 }}>
@@ -614,6 +381,14 @@ export default function ProductPage({ product, relatedProducts }: Props) {
                     )}
                 </Box>
 
+                {/* Frequentemente comprados juntos */}
+                {frequentlyBought.length > 0 && (
+                    <FrequentlyBought
+                        mainProduct={{ id: product.id, name: product.name, slug: product.slug, price_cents: product.price_cents, has_discount: product.has_discount, brand_name: product.brand?.name ?? null, cover_image: images[0]?.url ?? null }}
+                        companions={frequentlyBought}
+                    />
+                )}
+
                 {/* Produtos relacionados */}
                 {relatedProducts.length > 0 && (
                     <Box sx={{ mt: 8 }}>
@@ -636,6 +411,51 @@ export default function ProductPage({ product, relatedProducts }: Props) {
             </Container>
 
             {/* Feedback de ações */}
+            {/* ── STICKY ADD TO CART BAR ────────────────────────────── */}
+            {showStickyBar && (
+                <Box sx={{
+                    position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1200,
+                    bgcolor: 'white',
+                    borderTop: '1px solid rgba(0,0,0,0.08)',
+                    boxShadow: '0 -4px 24px rgba(0,0,0,0.1)',
+                    py: 1.5, px: 2,
+                    animation: 'slideUpBar 0.25s ease',
+                    '@keyframes slideUpBar': {
+                        from: { transform: 'translateY(100%)' },
+                        to:   { transform: 'translateY(0)' },
+                    },
+                }}>
+                    <Container maxWidth="lg">
+                        <Stack direction="row" sx={{ alignItems: 'center', gap: 2 }}>
+                            {/* Imagem miniatura */}
+                            {images[0]?.url && (
+                                <Box
+                                    component="img"
+                                    src={images[0].url}
+                                    sx={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 1, bgcolor: '#F8F9FA', p: 0.5, flexShrink: 0, display: { xs: 'none', sm: 'block' } }}
+                                />
+                            )}
+                            {/* Nome e preço */}
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography sx={{ fontWeight: 700, fontSize: 14, lineHeight: 1.2 }} noWrap>{product.name}</Typography>
+                                <Typography sx={{ fontSize: 16, fontWeight: 900, color: 'primary.main', lineHeight: 1 }}>{formatBRL(product.price_cents)}</Typography>
+                            </Box>
+                            {/* Botão */}
+                            <Button
+                                variant="contained"
+                                size="large"
+                                startIcon={<ShoppingCartIcon />}
+                                onClick={handleAddToCart}
+                                disabled={addingCart}
+                                sx={{ flexShrink: 0, px: 3, fontWeight: 700 }}
+                            >
+                                {addingCart ? 'Adicionando...' : 'Adicionar ao Carrinho'}
+                            </Button>
+                        </Stack>
+                    </Container>
+                </Box>
+            )}
+
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={3000}

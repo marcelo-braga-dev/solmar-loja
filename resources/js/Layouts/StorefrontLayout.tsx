@@ -14,6 +14,9 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import SmartSearch from '@/Components/storefront/SmartSearch';
 import CookieBanner from '@/Components/storefront/CookieBanner';
+import AnnouncementBar from '@/Components/storefront/AnnouncementBar';
+import WhatsAppButton from '@/Components/storefront/WhatsAppButton';
+import ComparisonBar from '@/Components/storefront/ComparisonBar';
 import type { SharedProps } from '@/Types/inertia';
 
 interface Props {
@@ -26,13 +29,16 @@ function HideOnScroll({ children }: { children: ReactNode }) {
 }
 
 export default function StorefrontLayout({ children }: Props) {
-    const { flash, cartCount, auth, branding } = usePage<SharedProps>().props;
+    const { flash, cartCount, auth, branding, priceList } = usePage<SharedProps>().props;
     const [mobileOpen, setMobileOpen] = useState(false);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+            {/* Announcement bar */}
+            <AnnouncementBar />
+
             {/* Top bar */}
             <Box sx={{ bgcolor: 'primary.dark', color: 'white', py: 0.5, display: { xs: 'none', md: 'block' } }}>
                 <Container maxWidth="lg">
@@ -429,6 +435,8 @@ export default function StorefrontLayout({ children }: Props) {
                 </Container>
             </Box>
 
+            <WhatsAppButton />
+            <ComparisonBar />
             <CookieBanner />
         </Box>
     );

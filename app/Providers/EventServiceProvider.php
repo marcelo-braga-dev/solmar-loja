@@ -33,6 +33,7 @@ class EventServiceProvider extends ServiceProvider
         ],
         StockChanged::class => [
             NotifyAdminsOnLowStock::class,
+            \App\Listeners\NotifyStockAlerts::class,
         ],
         ProductPublished::class => [],
         ProductUpdated::class   => [],

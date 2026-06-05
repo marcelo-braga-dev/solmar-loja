@@ -27,14 +27,27 @@ final class AccountController extends Controller
         $favoritesCount = $customer?->favoriteProducts()->count() ?? 0;
         $addressesCount = $customer?->addresses->count() ?? 0;
 
+        $recentOrders = $user->orders()
+            ->latest('placed_at')
+            ->limit(3)
+            ->get()
+            ->map(fn (Order $o) => [
+                'uuid'         => $o->uuid,
+                'status_label' => $o->status->label(),
+                'status_color' => $o->status->color(),
+                'total_cents'  => $o->total_cents,
+                'placed_at'    => $o->placed_at?->diffForHumans(),
+            ]);
+
         return Inertia::render('Storefront/Account/Dashboard', [
-            'user'     => $user->only('id', 'name', 'email', 'email_verified_at'),
-            'customer' => $customer ? $customer->only('phone', 'cpf_cnpj', 'type') : null,
-            'stats'    => [
+            'user'         => $user->only('id', 'name', 'email', 'email_verified_at'),
+            'customer'     => $customer ? $customer->only('phone', 'cpf_cnpj', 'type') : null,
+            'stats'        => [
                 'orders'    => $ordersCount,
                 'favorites' => $favoritesCount,
                 'addresses' => $addressesCount,
             ],
+            'recentOrders' => $recentOrders,
         ]);
     }
 
