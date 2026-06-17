@@ -12,7 +12,7 @@ return new class extends Migration
     {
         // #12 — Wishlist sharing: token público por cliente
         Schema::table('customers', function (Blueprint $table): void {
-            $table->uuid('wishlist_token')->nullable()->unique();
+            $table->uuid('wishlist_token')->nullable()->unique()->after('meta');
             $table->boolean('wishlist_public')->default(false)->after('wishlist_token');
         });
 

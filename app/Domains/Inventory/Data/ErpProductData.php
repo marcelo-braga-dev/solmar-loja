@@ -18,6 +18,8 @@ final class ErpProductData extends Data
         public readonly ?int $weightGrams = null,
         public readonly ?string $description = null,
         public readonly ?array $specifications = null,
-        public readonly ?string $imageUrl = null,
+        /** @var string[] */
+        public readonly array $imageUrls = [],
+        public readonly ?string $categoryName = null,
     ) {}
 }

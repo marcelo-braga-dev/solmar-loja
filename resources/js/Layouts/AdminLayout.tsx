@@ -114,6 +114,7 @@ const NAV_SECTIONS: NavSection[] = [
         title: 'Sistema',
         items: [
             { label: 'Configurações', icon: <SettingsIcon fontSize="small" />, href: '/admin/settings' },
+            { label: 'Menu Principal', icon: <MenuIcon fontSize="small" />, href: '/admin/menu-items' },
             { label: 'Identidade Visual', icon: <PaletteIcon fontSize="small" />, href: '/admin/branding' },
             { label: 'Autenticação 2FA', icon: <SecurityIcon fontSize="small" />, href: '/two-factor/setup' },
         ],
@@ -137,7 +138,7 @@ interface Notification {
 }
 
 export default function AdminLayout({ children, title = 'Admin', breadcrumbs }: Props) {
-    const { auth, notifyCount } = usePage<SharedProps>().props;
+    const { auth, notifyCount, branding } = usePage<SharedProps>().props;
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -189,18 +190,27 @@ export default function AdminLayout({ children, title = 'Admin', breadcrumbs }: 
                 borderBottom: '1px solid rgba(255,255,255,0.06)',
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Box sx={{
-                        width: 38, height: 38,
-                        borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #0B5FFF 0%, #4D8DFF 100%)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 4px 12px rgba(11,95,255,0.4)',
-                    }}>
-                        <SolarPowerIcon sx={{ color: 'white', fontSize: 20 }} />
-                    </Box>
+                    {branding?.logo_dark_url || branding?.logo_url ? (
+                        <Box
+                            component="img"
+                            src={branding.logo_dark_url || branding.logo_url}
+                            alt={branding.store_name}
+                            sx={{ height: 38, maxWidth: 120, objectFit: 'contain' }}
+                        />
+                    ) : (
+                        <Box sx={{
+                            width: 38, height: 38,
+                            borderRadius: '10px',
+                            background: 'linear-gradient(135deg, #0B5FFF 0%, #4D8DFF 100%)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 4px 12px rgba(11,95,255,0.4)',
+                        }}>
+                            <SolarPowerIcon sx={{ color: 'white', fontSize: 20 }} />
+                        </Box>
+                    )}
                     <Box>
                         <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'white', lineHeight: 1, letterSpacing: '-0.3px' }}>
-                            SolarHub
+                            {branding?.store_name || 'SolarHub'}
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase' }}>
                             Admin Panel

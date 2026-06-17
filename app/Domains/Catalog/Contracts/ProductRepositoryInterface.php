@@ -23,6 +23,14 @@ interface ProductRepositoryInterface
     /** @return LengthAwarePaginator<Product> */
     public function filter(ProductFilterData $filter): LengthAwarePaginator;
 
+    /**
+     * Atributos filtráveis e seus valores disponíveis entre os produtos publicados das categorias informadas.
+     *
+     * @param int[] $categoryIds
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    public function facetsForCategories(array $categoryIds): \Illuminate\Support\Collection;
+
     /** @return LengthAwarePaginator<Product> */
     public function paginateForAdmin(int $perPage = 20, ?string $search = null): LengthAwarePaginator;
 

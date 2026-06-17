@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Domains\Orders\Models\Cart;
 use App\Domains\Catalog\Services\CategoryService;
+use App\Domains\Settings\Services\MenuService;
 use App\Domains\Settings\Services\SettingsService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -42,7 +43,18 @@ class HandleInertiaRequests extends Middleware
             'notifyCount'   => fn () => $this->resolveNotifyCount($request),
             'branding'      => fn () => $this->resolveBranding(),
             'priceList'     => fn () => $this->resolvePriceList($request),
+            'mainMenu'      => fn () => $this->resolveMainMenu(),
         ];
+    }
+
+    /** @return array<int, array{label: string, href: string}> */
+    private function resolveMainMenu(): array
+    {
+        try {
+            return app(MenuService::class)->forStorefront();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     /** @return array<string, string> */

@@ -17,12 +17,13 @@ import Breadcrumb from '@/Components/storefront/Breadcrumb';
 import Pagination from '@/Components/storefront/Pagination';
 import { formatBRL } from '@/Lib/formatters';
 import type { PageProps } from '@inertiajs/react';
-import type { Category, Brand, Product, PaginatedData, ProductFilters } from '@/Types/catalog';
+import type { Category, Brand, Product, PaginatedData, ProductFilters, Facet } from '@/Types/catalog';
 
 interface Props extends PageProps {
     category: Category;
     products: PaginatedData<Product>;
     brands: Brand[];
+    facets: Facet[];
     filters: ProductFilters;
 }
 
@@ -33,7 +34,7 @@ const SORT_OPTIONS = [
     { value: 'newest', label: 'Mais recentes' },
 ];
 
-export default function CategoryPage({ category, products, brands, filters }: Props) {
+export default function CategoryPage({ category, products, brands, facets, filters }: Props) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [drawerOpen, setDrawerOpen] = useState(false);
@@ -58,11 +59,118 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
         router.get(`/categorias/${category.slug}`, updated, { preserveState: true });
     };
 
-    const activeFilterCount = Object.values(filters).filter(Boolean).length;
+    const toggleAttrValue = (valueId: number) => {
+        const current = filters.attrs ?? [];
+        const updated = current.includes(valueId)
+            ? current.filter((id) => id !== valueId)
+            : [...current, valueId];
+        applyFilters({ attrs: updated.length > 0 ? updated : undefined });
+    };
+
+    const removeAttrValue = (valueId: number) => {
+        const updated = (filters.attrs ?? []).filter((id) => id !== valueId);
+        applyFilters({ attrs: updated.length > 0 ? updated : undefined });
+    };
+
+    const selectedCategoryIds = filters.categories ?? [category.id];
+
+    const toggleCategory = (id: number) => {
+        const isLastChecked = selectedCategoryIds.length === 1 && selectedCategoryIds.includes(id);
+        if (isLastChecked) return; // mantém sempre ao menos uma categoria marcada
+
+        const updated = selectedCategoryIds.includes(id)
+            ? selectedCategoryIds.filter((cid) => cid !== id)
+            : [...selectedCategoryIds, id];
+        applyFilters({ categories: updated });
+    };
+
+    const facetValueLabel = (valueId: number): string => {
+        for (const facet of facets) {
+            const found = facet.values.find((v) => v.id === valueId);
+            if (found) return found.value;
+        }
+        return String(valueId);
+    };
+
+    const activeFilterCount = Object.entries(filters)
+        .filter(([key, value]) => key !== 'attrs' && key !== 'categories' && Boolean(value)).length
+        + (filters.attrs?.length ?? 0)
+        + (selectedCategoryIds.length > 1 ? selectedCategoryIds.length : 0);
 
     const FilterPanel = () => (
         <Box sx={{ width: { xs: 300, md: 'auto' }, p: { xs: 2, md: 0 } }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Filtros</Typography>
+
+            {/* Subcategorias */}
+            {category.children && category.children.length > 0 && (
+                <>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Subcategorias</Typography>
+                    <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap', gap: 1 }}>
+                        {category.children.map((child) => (
+                            <Chip
+                                key={child.id}
+                                label={child.name}
+                                component="a"
+                                href={`/categorias/${child.slug}`}
+                                clickable
+                                size="small"
+                                variant="outlined"
+                            />
+                        ))}
+                    </Stack>
+                    <Divider sx={{ mb: 3 }} />
+                </>
+            )}
+
+            {/* Categorias irmãs (inclui a categoria atual) — seleção múltipla */}
+            {category.siblings && category.siblings.length > 1 && (
+                <>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Categorias relacionadas</Typography>
+                    <FormGroup sx={{ mb: 3 }}>
+                        {category.siblings.map((sibling) => (
+                            <FormControlLabel
+                                key={sibling.id}
+                                control={
+                                    <Checkbox
+                                        size="small"
+                                        checked={selectedCategoryIds.includes(sibling.id)}
+                                        onChange={() => toggleCategory(sibling.id)}
+                                    />
+                                }
+                                label={
+                                    <Typography variant="body2" sx={{ fontWeight: sibling.id === category.id ? 700 : 400 }}>
+                                        {sibling.name}{sibling.id === category.id ? ' (atual)' : ''}
+                                    </Typography>
+                                }
+                            />
+                        ))}
+                    </FormGroup>
+                    <Divider sx={{ mb: 3 }} />
+                </>
+            )}
+
+            {/* Atributos dinâmicos por categoria */}
+            {facets.map((facet) => (
+                <Box key={facet.id}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>{facet.name}</Typography>
+                    <FormGroup sx={{ mb: 3 }}>
+                        {facet.values.map((fv) => (
+                            <FormControlLabel
+                                key={fv.id}
+                                control={
+                                    <Checkbox
+                                        size="small"
+                                        checked={(filters.attrs ?? []).includes(fv.id)}
+                                        onChange={() => toggleAttrValue(fv.id)}
+                                    />
+                                }
+                                label={<Typography variant="body2">{fv.value} <Typography component="span" variant="caption" sx={{ color: 'text.disabled' }}>({fv.count})</Typography></Typography>}
+                            />
+                        ))}
+                    </FormGroup>
+                </Box>
+            ))}
+            {facets.length > 0 && <Divider sx={{ mb: 3 }} />}
 
             {/* Marcas */}
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Marcas</Typography>
@@ -152,7 +260,10 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
                     {/* Filtros — desktop */}
                     {!isMobile && (
                         <Grid size={{ md: 3 }}>
-                            <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', p: 3, borderRadius: 2, position: 'sticky', top: 80 }}>
+                            <Paper
+                                elevation={0}
+                                sx={{ border: '1px solid', borderColor: 'divider', p: 3, borderRadius: 2 }}
+                            >
                                 <FilterPanel />
                             </Paper>
                         </Grid>
@@ -180,6 +291,16 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
                                 {filters.on_sale && (
                                     <Chip label="Em promoção" onDelete={() => removeFilter('on_sale')} size="small" color="error" variant="outlined" />
                                 )}
+                                {(filters.attrs ?? []).map((valueId) => (
+                                    <Chip
+                                        key={valueId}
+                                        label={facetValueLabel(valueId)}
+                                        onDelete={() => removeAttrValue(valueId)}
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                    />
+                                ))}
                             </Stack>
 
                             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
@@ -268,7 +389,7 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
                                         <Avatar
                                             src={product.cover_image ?? undefined}
                                             variant="rounded"
-                                            sx={{ width: 80, height: 80, bgcolor: '#F8F9FA', flexShrink: 0, '& img': { objectFit: 'cover' } }}
+                                            sx={{ width: 80, height: 80, bgcolor: '#F8F9FA', flexShrink: 0, '& img': { objectFit: 'contain' } }}
                                         />
                                         <Box sx={{ flex: 1, minWidth: 0 }}>
                                             {product.brand_name && (

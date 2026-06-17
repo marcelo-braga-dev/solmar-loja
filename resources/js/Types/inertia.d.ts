@@ -49,6 +49,11 @@ export interface PriceListInfo {
     type: string;
 }
 
+export interface MainMenuItem {
+    label: string;
+    href: string;
+}
+
 export interface SharedProps {
     auth: Auth;
     flash: Flash;
@@ -56,6 +61,7 @@ export interface SharedProps {
     notifyCount: number;
     branding: Branding;
     priceList: PriceListInfo | null;
+    mainMenu: MainMenuItem[];
     [key: string]: unknown;
 }
 

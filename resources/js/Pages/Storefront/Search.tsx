@@ -255,7 +255,7 @@ export default function Search({ q, on_sale, in_stock, brand, price_min, price_m
                                         sx={{ display: 'flex', gap: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2, textDecoration: 'none', color: 'inherit', '&:hover': { borderColor: 'primary.main', boxShadow: 1 } }}
                                     >
                                         <Box sx={{ width: 80, height: 80, flexShrink: 0, borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.100' }}>
-                                            {product.cover_image && <img src={product.cover_image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                            {product.cover_image && <img src={product.cover_image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
                                         </Box>
                                         <Box sx={{ flex: 1, minWidth: 0 }}>
                                             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>{product.name}</Typography>

@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Domains\Catalog\Contracts\CategoryRepositoryInterface;
 use App\Domains\Catalog\Data\ProductFilterData;
+use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Services\BrandService;
 use App\Domains\Catalog\Services\ProductService;
 use App\Http\Controllers\Controller;
@@ -29,6 +30,20 @@ final class CategoryController extends Controller
             abort(404);
         }
 
+        $category->loadMissing('children');
+
+        $attributeValueIds = array_map('intval', (array) $request->input('attrs', []));
+
+        $siblingGroup = $category->parent_id !== null
+            ? Category::where('parent_id', $category->parent_id)->orderBy('position')->get(['id', 'name', 'slug'])
+            : collect();
+
+        $selectedCategoryIds = array_map('intval', (array) $request->input('categories', []));
+        // Sem seleção explícita: a categoria atual já vem marcada por padrão
+        if ($selectedCategoryIds === [] && $siblingGroup->isNotEmpty()) {
+            $selectedCategoryIds = [$category->id];
+        }
+
         $filter = new ProductFilterData(
             q: $request->string('q')->value() ?: null,
             categoryId: $category->id,
@@ -39,6 +54,8 @@ final class CategoryController extends Controller
             onSale: $request->boolean('on_sale'),
             sortBy: $request->string('sort')->value() ?: 'relevance',
             perPage: 24,
+            attributeValueIds: $attributeValueIds,
+            categoryIds: $selectedCategoryIds,
         );
 
         $products = $this->productService->filter($filter);
@@ -54,6 +71,8 @@ final class CategoryController extends Controller
                     'name' => $a->name,
                     'slug' => $a->slug,
                 ])->push(['name' => $category->name, 'slug' => $category->slug]),
+                'children' => $category->children->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'slug' => $c->slug]),
+                'siblings' => $siblingGroup->map(fn ($c) => ['id' => $c->id, 'name' => $c->name, 'slug' => $c->slug]),
             ],
             'products' => $products->through(fn ($p) => [
                 'id' => $p->id,
@@ -69,6 +88,7 @@ final class CategoryController extends Controller
                 'cover_image' => $p->coverImage()?->url(),
             ]),
             'brands' => $this->brandService->allActive()->map(fn ($b) => ['id' => $b->id, 'name' => $b->name]),
+            'facets' => $this->productService->facetsForCategory($category),
             'filters' => [
                 'brand' => $request->integer('brand') ?: null,
                 'price_min' => $request->integer('price_min') ?: null,
@@ -77,6 +97,8 @@ final class CategoryController extends Controller
                 'on_sale' => $request->boolean('on_sale') ?: null,
                 'sort' => $request->string('sort')->value() ?: null,
                 'q' => $request->string('q')->value() ?: null,
+                'attrs' => $attributeValueIds !== [] ? $attributeValueIds : null,
+                'categories' => $selectedCategoryIds !== [] ? $selectedCategoryIds : null,
             ],
         ]);
     }

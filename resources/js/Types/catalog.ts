@@ -11,6 +11,7 @@ export interface Category {
     parent_id?: number | null;
     depth?: number;
     children?: Category[];
+    siblings?: Category[];
     breadcrumbs?: { name: string; slug?: string }[];
 }
 
@@ -100,4 +101,18 @@ export interface ProductFilters {
     in_stock?: boolean;
     on_sale?: boolean;
     sort?: string;
+    attrs?: number[];
+    categories?: number[];
+}
+
+export interface FacetValue {
+    id: number;
+    value: string;
+    count: number;
+}
+
+export interface Facet {
+    id: number;
+    name: string;
+    values: FacetValue[];
 }

@@ -29,7 +29,7 @@ function HideOnScroll({ children }: { children: ReactNode }) {
 }
 
 export default function StorefrontLayout({ children }: Props) {
-    const { flash, cartCount, auth, branding, priceList } = usePage<SharedProps>().props;
+    const { flash, cartCount, auth, branding, priceList, mainMenu } = usePage<SharedProps>().props;
     const [mobileOpen, setMobileOpen] = useState(false);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -157,18 +157,8 @@ export default function StorefrontLayout({ children }: Props) {
                     {/* Nav links */}
                     <Box sx={{ bgcolor: 'primary.main', display: { xs: 'none', md: 'block' } }}>
                         <Container maxWidth="lg">
-                            <Stack direction="row" spacing={0}>
-                                {[
-                                    { label: 'Energia Solar', href: '/categorias/energia-solar' },
-                                    { label: 'Kits Fotovoltaicos', href: '/categorias/kits-fotovoltaicos' },
-                                    { label: 'Painéis Solares', href: '/categorias/paineis-modulos-solares' },
-                                    { label: 'Inversores', href: '/categorias/inversores' },
-                                    { label: 'Baterias', href: '/categorias/baterias-e-armazenamento' },
-                                    { label: 'Mobilidade Elétrica', href: '/categorias/mobilidade-eletrica' },
-                                    { label: '🔧 Monte seu Kit', href: '/monte-seu-kit' },
-                                    { label: '☀ Simulador', href: '/simulador' },
-                                    { label: 'Blog', href: '/blog' },
-                                ].map((item) => (
+                            <Stack direction="row" spacing={0} sx={{ justifyContent: 'center' }}>
+                                {(mainMenu ?? []).map((item) => (
                                     <Button
                                         key={item.href}
                                         component={Link}
@@ -178,7 +168,7 @@ export default function StorefrontLayout({ children }: Props) {
                                             borderRadius: 0,
                                             px: 2,
                                             py: 1.2,
-                                            fontSize: 13,
+                                            fontSize: 14.5,
                                             fontWeight: 500,
                                             '&:hover': { bgcolor: 'primary.dark' },
                                         }}
@@ -200,18 +190,7 @@ export default function StorefrontLayout({ children }: Props) {
                         <Typography variant="h6" sx={{ fontWeight: 800 }}>SolarHub</Typography>
                     </Box>
                     <List>
-                        {[
-                            { label: 'Início', href: '/' },
-                            { label: 'Energia Solar', href: '/categorias/energia-solar' },
-                            { label: 'Kits Fotovoltaicos', href: '/categorias/kits-fotovoltaicos' },
-                            { label: 'Painéis Solares', href: '/categorias/paineis-modulos-solares' },
-                            { label: 'Inversores', href: '/categorias/inversores' },
-                            { label: 'Baterias', href: '/categorias/baterias-e-armazenamento' },
-                            { label: 'Mobilidade Elétrica', href: '/categorias/mobilidade-eletrica' },
-                            { label: '🔧 Monte seu Kit', href: '/monte-seu-kit' },
-                            { label: 'Simulador Solar', href: '/simulador' },
-                            { label: 'Blog', href: '/blog' },
-                        ].map((item) => (
+                        {[{ label: 'Início', href: '/' }, ...(mainMenu ?? [])].map((item) => (
                             <ListItem key={item.href} disablePadding>
                                 <ListItemButton component={Link} href={item.href} onClick={() => setMobileOpen(false)}>
                                     <ListItemText primary={item.label} />
@@ -344,7 +323,7 @@ export default function StorefrontLayout({ children }: Props) {
                                 links: [
                                     { label: 'Painéis Solares', href: '/categorias/paineis-modulos-solares' },
                                     { label: 'Inversores', href: '/categorias/inversores' },
-                                    { label: 'Kits Fotovoltaicos', href: '/categorias/kits-fotovoltaicos' },
+                                    { label: 'Geradores Fotovoltaicos', href: '/categorias/geradores-fotovoltaicos' },
                                     { label: 'Baterias', href: '/categorias/baterias-e-armazenamento' },
                                 ],
                             },
