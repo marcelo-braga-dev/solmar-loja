@@ -26,7 +26,7 @@ interface ProductRepositoryInterface
     /**
      * Atributos filtráveis e seus valores disponíveis entre os produtos publicados das categorias informadas.
      *
-     * @param int[] $categoryIds
+     * @param  int[]  $categoryIds
      * @return \Illuminate\Support\Collection<int, object>
      */
     public function facetsForCategories(array $categoryIds): \Illuminate\Support\Collection;
@@ -42,6 +42,9 @@ interface ProductRepositoryInterface
 
     /** @return Collection<int, Product> */
     public function related(Product $product, int $limit = 6): Collection;
+
+    /** @return Collection<int, Product> */
+    public function byCategorySlug(string $slug, int $limit = 8): Collection;
 
     public function create(ProductData $data): Product;
 

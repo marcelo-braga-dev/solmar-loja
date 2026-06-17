@@ -346,7 +346,7 @@ Sincronização diária (e incremental de hora em hora) do catálogo de kits fot
 - **Como Funciona:** 4 passos (Escolha/Simule/Compre/Receba) em cards com conectores `ArrowForwardIcon`
 - **Stats section:** 15.000+ clientes, 50MW+ instalados, 12.000+ pedidos, 25 anos garantia
 - **Por que comprar com a SolarHub:** 6 pilares de confiança (compra segura, produtos homologados, simulador, equipe especializada, garantia estendida, entrega monitorada)
-- **Categorias:** gradiente por tipo (`CAT_STYLE` map), emoji, hover com sombra colorida
+- **Geradores Fotovoltaicos:** seção "Nosso Catálogo" trocou a antiga grade de ícones de categoria por cards reais de produto (`ProductCard`) dos kits fotovoltaicos (`ProductService::byCategorySlug('kits-fotovoltaicos', 6)`, novo método em repository/service/contract), com 2 CTAs ("Ver Geradores Fotovoltaicos" → `/categorias/kits-fotovoltaicos` e "Ver todos os produtos" → `/busca`)
 - **Aprenda sobre energia solar:** teaser dos 3 posts mais recentes do Blog (`Post::published()`), com imagem/fallback gradiente, data e tempo de leitura, link para `/blog`
 - **Testimoniais:** 3 depoimentos com estrelas, nome, cidade, produto
 - **Faixa de confiança e segurança:** chips de meios de pagamento (Pix, Boleto, bandeiras, 12x sem juros) + selos de segurança (SSL, criptografia, garantia oficial, LGPD)

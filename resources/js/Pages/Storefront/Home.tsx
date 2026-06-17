@@ -26,7 +26,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
 import ProductCard from '@/Components/storefront/ProductCard';
 import type { PageProps } from '@inertiajs/react';
-import type { Product, Category, Brand } from '@/Types/catalog';
+import type { Product, Brand } from '@/Types/catalog';
 import type { SharedProps } from '@/Types/inertia';
 
 interface PostTeaser {
@@ -42,7 +42,7 @@ interface PostTeaser {
 interface Props extends PageProps {
     featuredProducts: Product[];
     onSaleProducts: Product[];
-    mainCategories: Category[];
+    generatorProducts: Product[];
     brands: Brand[];
     latestPosts: PostTeaser[];
 }
@@ -86,20 +86,6 @@ function formatBRLShort(cents: number) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(cents / 100);
 }
 
-// Mapa de ícones/gradientes por slug de categoria
-const CAT_STYLE: Record<string, { emoji: string; gradient: string; color: string }> = {
-    'energia-solar':            { emoji: '☀️', gradient: 'linear-gradient(135deg,#FF8C00,#FFB300)', color: '#FF8C00' },
-    'kits-fotovoltaicos':       { emoji: '📦', gradient: 'linear-gradient(135deg,#0B5FFF,#4D8DFF)', color: '#0B5FFF' },
-    'paineis-modulos-solares':  { emoji: '🔆', gradient: 'linear-gradient(135deg,#059669,#34D399)', color: '#059669' },
-    'inversores':               { emoji: '⚡', gradient: 'linear-gradient(135deg,#7C3AED,#A78BFA)', color: '#7C3AED' },
-    'baterias-e-armazenamento': { emoji: '🔋', gradient: 'linear-gradient(135deg,#DC2626,#F87171)', color: '#DC2626' },
-    'estruturas-de-fixacao':    { emoji: '🏗️', gradient: 'linear-gradient(135deg,#EA580C,#FB923C)', color: '#EA580C' },
-    'cabos-e-conectores':       { emoji: '🔌', gradient: 'linear-gradient(135deg,#0284C7,#38BDF8)', color: '#0284C7' },
-    'monitoramento':            { emoji: '📊', gradient: 'linear-gradient(135deg,#0F766E,#2DD4BF)', color: '#0F766E' },
-    'mobilidade-eletrica':      { emoji: '🚗', gradient: 'linear-gradient(135deg,#1D4ED8,#60A5FA)', color: '#1D4ED8' },
-    'iluminacao-led':           { emoji: '💡', gradient: 'linear-gradient(135deg,#B45309,#FCD34D)', color: '#B45309' },
-};
-
 const TESTIMONIALS = [
     { name: 'Roberto Alves', city: 'São Paulo, SP', text: 'Comprei um kit solar completo e a economia na conta de luz foi incrível. Em 4 anos já se pagou! Suporte técnico excelente.', rating: 5, product: 'Kit 5kWp On-Grid' },
     { name: 'Maria Fernanda', city: 'Belo Horizonte, MG', text: 'Atendimento impecável. Os painéis chegaram antes do prazo e a qualidade é superior. Recomendo para qualquer pessoa querendo energia solar.', rating: 5, product: 'Painel Solar 550W' },
@@ -129,7 +115,7 @@ const HOW_IT_WORKS = [
     { step: '04', icon: <SolarPowerIcon />, title: 'Receba e gere energia', desc: 'Entrega rastreada e suporte na instalação do seu sistema.' },
 ];
 
-export default function Home({ featuredProducts, onSaleProducts, mainCategories, brands, latestPosts }: Props) {
+export default function Home({ featuredProducts, onSaleProducts, generatorProducts, brands, latestPosts }: Props) {
     const { branding } = usePage<SharedProps>().props;
     const freeShippingMin = branding?.free_shipping_min_cents ?? 200000;
     const freeShippingEnabled = branding?.free_shipping_enabled ?? true;
@@ -470,66 +456,49 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                 </Box>
             </Reveal>
 
-            {/* ── CATEGORIAS ────────────────────────────────────────────────── */}
-            {mainCategories.length > 0 && (
+            {/* ── GERADORES FOTOVOLTAICOS ──────────────────────────────────── */}
+            {generatorProducts.length > 0 && (
               <Reveal>
                 <Box sx={{ py: 8, bgcolor: '#F8F9FC' }}>
                     <Container maxWidth="lg">
                         <Box sx={{ textAlign: 'center', mb: 5 }}>
                             <Chip label="Nosso Catálogo" color="primary" size="small" sx={{ mb: 1.5, fontWeight: 600 }} />
                             <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.5px' }}>
-                                O que você está procurando?
+                                Geradores Fotovoltaicos para todo tipo de consumo
                             </Typography>
-                            <Typography sx={{ color: 'text.secondary', fontSize: 16, maxWidth: 480, mx: 'auto' }}>
-                                Encontre tudo para o seu sistema de energia solar em um só lugar
+                            <Typography sx={{ color: 'text.secondary', fontSize: 16, maxWidth: 560, mx: 'auto' }}>
+                                Kits completos, prontos para instalar — escolha a potência ideal e comece a gerar sua própria energia
                             </Typography>
                         </Box>
-                        <Grid container spacing={2.5}>
-                            {mainCategories.map((cat) => {
-                                const style = CAT_STYLE[cat.slug] ?? { emoji: '⚡', gradient: 'linear-gradient(135deg,#0B5FFF,#4D8DFF)', color: '#0B5FFF' };
-                                return (
-                                    <Grid key={cat.id} size={{ xs: 6, sm: 4, md: 3 }}>
-                                        <Box
-                                            component={Link}
-                                            href={`/categorias/${cat.slug}`}
-                                            sx={{
-                                                display: 'block', textDecoration: 'none',
-                                                borderRadius: 3, overflow: 'hidden',
-                                                border: '1px solid rgba(0,0,0,0.06)',
-                                                bgcolor: 'white',
-                                                transition: 'all 0.2s',
-                                                '&:hover': {
-                                                    transform: 'translateY(-4px)',
-                                                    boxShadow: `0 12px 40px ${alpha(style.color, 0.18)}`,
-                                                    '& .cat-gradient': { transform: 'scale(1.08)' },
-                                                },
-                                            }}
-                                        >
-                                            <Box
-                                                className="cat-gradient"
-                                                sx={{
-                                                    background: style.gradient,
-                                                    height: 90,
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    transition: 'transform 0.3s',
-                                                    fontSize: 42,
-                                                }}
-                                            >
-                                                {style.emoji}
-                                            </Box>
-                                            <Box sx={{ p: 2 }}>
-                                                <Typography sx={{ fontWeight: 700, fontSize: 14, color: 'text.primary', lineHeight: 1.3 }}>
-                                                    {cat.name}
-                                                </Typography>
-                                                <Typography sx={{ fontSize: 12, color: style.color, fontWeight: 600, mt: 0.5 }}>
-                                                    Ver produtos →
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-                                    </Grid>
-                                );
-                            })}
+                        <Grid container spacing={3}>
+                            {generatorProducts.map((product) => (
+                                <Grid key={product.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                                    <ProductCard product={product} />
+                                </Grid>
+                            ))}
                         </Grid>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'center', mt: 5 }}>
+                            <Button
+                                component={Link}
+                                href="/categorias/kits-fotovoltaicos"
+                                size="large"
+                                variant="contained"
+                                endIcon={<ArrowForwardIcon />}
+                                sx={{ fontWeight: 700, px: 4, py: 1.3 }}
+                            >
+                                Ver Geradores Fotovoltaicos
+                            </Button>
+                            <Button
+                                component={Link}
+                                href="/busca"
+                                size="large"
+                                variant="outlined"
+                                endIcon={<ArrowForwardIcon />}
+                                sx={{ fontWeight: 700, px: 4, py: 1.3 }}
+                            >
+                                Ver todos os produtos
+                            </Button>
+                        </Stack>
                     </Container>
                 </Box>
               </Reveal>
@@ -918,6 +887,7 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
             <Box sx={{
                 background: 'linear-gradient(135deg, #0D1B3E 0%, #0B3D91 50%, #0B5FFF 100%)',
                 py: { xs: 8, md: 12 },
+                mb: -8,
                 position: 'relative', overflow: 'hidden',
             }}>
                 <Box sx={{

@@ -15,6 +15,10 @@
         <meta property="og:site_name" content="{{ config('app.name') }}">
         <meta property="og:locale" content="pt_BR">
 
+        {{-- Favicon (configurável via Admin > Identidade Visual) --}}
+        @php($faviconUrl = app(\App\Domains\Settings\Services\SettingsService::class)->get('favicon_url', ''))
+        <link rel="icon" href="{{ $faviconUrl !== '' ? $faviconUrl : '/favicon.ico' }}">
+
         {{-- Performance hints --}}
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

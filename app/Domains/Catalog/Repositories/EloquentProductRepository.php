@@ -195,6 +195,26 @@ final class EloquentProductRepository implements ProductRepositoryInterface
             ->get();
     }
 
+    /** @return Collection<int, Product> */
+    public function byCategorySlug(string $slug, int $limit = 8): Collection
+    {
+        $category = Category::with('children')->where('slug', $slug)->first();
+
+        if (! $category) {
+            return new Collection;
+        }
+
+        $categoryIds = [$category->id, ...$category->children->pluck('id')->all()];
+
+        return Product::query()
+            ->with(['brand', 'images'])
+            ->published()
+            ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds))
+            ->inRandomOrder()
+            ->limit($limit)
+            ->get();
+    }
+
     public function create(ProductData $data): Product
     {
         $product = Product::create($this->toAttributes($data));

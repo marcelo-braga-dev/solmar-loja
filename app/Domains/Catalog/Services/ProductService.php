@@ -50,10 +50,10 @@ final class ProductService
 
         $data = ProductData::from([
             ...$product->toArray(),
-            'priceCents'    => $product->price_cents,
-            'status'        => ProductStatus::Published,
-            'published_at'  => now(),
-            'categoryIds'   => $product->categories->pluck('id')->toArray(),
+            'priceCents' => $product->price_cents,
+            'status' => ProductStatus::Published,
+            'published_at' => now(),
+            'categoryIds' => $product->categories->pluck('id')->toArray(),
         ]);
 
         $updated = $this->products->update($product, $data);
@@ -67,8 +67,8 @@ final class ProductService
     {
         $data = ProductData::from([
             ...$product->toArray(),
-            'priceCents'  => $product->price_cents,
-            'status'      => ProductStatus::Draft,
+            'priceCents' => $product->price_cents,
+            'status' => ProductStatus::Draft,
             'categoryIds' => $product->categories->pluck('id')->toArray(),
         ]);
 
@@ -98,10 +98,10 @@ final class ProductService
         return $this->products->facetsForCategories($categoryIds)
             ->groupBy('attribute_id')
             ->map(fn ($rows) => [
-                'id'     => (int) $rows->first()->attribute_id,
-                'name'   => $rows->first()->attribute_name,
+                'id' => (int) $rows->first()->attribute_id,
+                'name' => $rows->first()->attribute_name,
                 'values' => $rows->map(fn ($r) => [
-                    'id'    => (int) $r->value_id,
+                    'id' => (int) $r->value_id,
                     'value' => $r->value,
                     'count' => (int) $r->product_count,
                 ])->values()->all(),
@@ -126,6 +126,12 @@ final class ProductService
     public function onSale(int $limit = 8): Collection
     {
         return $this->products->onSale($limit);
+    }
+
+    /** @return Collection<int, Product> */
+    public function byCategorySlug(string $slug, int $limit = 8): Collection
+    {
+        return $this->products->byCategorySlug($slug, $limit);
     }
 
     /** @return Collection<int, Product> */
@@ -156,8 +162,8 @@ final class ProductService
         $position = $product->images()->max('position') + 1;
 
         return $product->images()->create([
-            'path'     => $path,
-            'alt'      => $product->name,
+            'path' => $path,
+            'alt' => $product->name,
             'position' => $position,
             'is_cover' => $isCover || $product->images()->count() === 0,
         ]);
