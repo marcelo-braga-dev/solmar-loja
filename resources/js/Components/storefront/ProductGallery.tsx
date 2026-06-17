@@ -406,7 +406,7 @@ export default function ProductGallery({ images, productName, hasDiscount, disco
                             sx={{
                                 position: 'absolute', inset: 0,
                                 width: '100%', height: '100%',
-                                objectFit: 'cover',
+                                objectFit: 'contain',
                                 opacity: fading ? 0 : 1,
                                 transition: 'opacity 0.13s ease',
                                 zIndex: 2,

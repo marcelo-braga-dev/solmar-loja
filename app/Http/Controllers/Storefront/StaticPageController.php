@@ -58,4 +58,14 @@ final class StaticPageController extends Controller
     {
         return Inertia::render('Storefront/Privacidade');
     }
+
+    public function vagas(): Response
+    {
+        return Inertia::render('Storefront/Vagas');
+    }
+
+    public function ajuda(): Response
+    {
+        return Inertia::render('Storefront/Ajuda');
+    }
 }

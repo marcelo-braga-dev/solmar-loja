@@ -7,6 +7,8 @@ namespace App\Domains\Catalog\Repositories;
 use App\Domains\Catalog\Contracts\ProductRepositoryInterface;
 use App\Domains\Catalog\Data\ProductData;
 use App\Domains\Catalog\Data\ProductFilterData;
+use App\Domains\Catalog\Models\AttributeValue;
+use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -39,8 +41,13 @@ final class EloquentProductRepository implements ProductRepositoryInterface
             ->with(['brand', 'images', 'categories'])
             ->published();
 
-        if ($filter->categoryId !== null) {
-            $query->whereHas('categories', fn ($q) => $q->where('categories.id', $filter->categoryId));
+        if (! empty($filter->categoryIds)) {
+            // Seleção explícita (ex.: múltiplas subcategorias irmãs marcadas no filtro)
+            $query->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $filter->categoryIds));
+        } elseif ($filter->categoryId !== null) {
+            $categoryIds = $this->categoryAndChildrenIds($filter->categoryId);
+
+            $query->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds));
         }
 
         if ($filter->brandId !== null) {
@@ -73,10 +80,15 @@ final class EloquentProductRepository implements ProductRepositoryInterface
         }
 
         if (! empty($filter->attributeValueIds)) {
-            foreach ($filter->attributeValueIds as $valueId) {
+            // Mesmo atributo = OR (qualquer marca selecionada); atributos diferentes = AND (refinam juntos)
+            $valuesByAttribute = AttributeValue::whereIn('id', $filter->attributeValueIds)
+                ->get(['id', 'attribute_id'])
+                ->groupBy('attribute_id');
+
+            foreach ($valuesByAttribute as $valueIds) {
                 $query->whereHas(
                     'attributeValues',
-                    fn ($q) => $q->where('attribute_values.id', $valueId)
+                    fn ($q) => $q->whereIn('attribute_values.id', $valueIds->pluck('id'))
                 );
             }
         }
@@ -84,6 +96,38 @@ final class EloquentProductRepository implements ProductRepositoryInterface
         $query->orderBy($filter->sortColumn(), $filter->sortDirection());
 
         return $query->paginate($filter->perPage);
+    }
+
+    /** @return \Illuminate\Support\Collection<int, object> */
+    public function facetsForCategories(array $categoryIds): \Illuminate\Support\Collection
+    {
+        return DB::table('product_attribute_values as pav')
+            ->join('products as p', 'p.id', '=', 'pav.product_id')
+            ->join('category_product as cp', 'cp.product_id', '=', 'p.id')
+            ->join('attribute_values as av', 'av.id', '=', 'pav.attribute_value_id')
+            ->join('attributes as a', 'a.id', '=', 'av.attribute_id')
+            ->whereIn('cp.category_id', $categoryIds)
+            ->where('p.status', 'published')
+            ->where('a.is_filterable', true)
+            ->groupBy('a.id', 'a.name', 'a.position', 'av.id', 'av.value', 'av.position')
+            ->orderBy('a.position')
+            ->orderBy('av.position')
+            ->get([
+                'a.id as attribute_id',
+                'a.name as attribute_name',
+                'av.id as value_id',
+                'av.value',
+                DB::raw('COUNT(DISTINCT p.id) as product_count'),
+            ]);
+    }
+
+    /** @return int[] */
+    private function categoryAndChildrenIds(int $categoryId): array
+    {
+        return Category::where('id', $categoryId)
+            ->orWhere('parent_id', $categoryId)
+            ->pluck('id')
+            ->all();
     }
 
     /** @return LengthAwarePaginator<Product> */

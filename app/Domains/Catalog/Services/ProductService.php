@@ -10,6 +10,7 @@ use App\Domains\Catalog\Data\ProductFilterData;
 use App\Domains\Catalog\Enums\ProductStatus;
 use App\Domains\Catalog\Events\ProductPublished;
 use App\Domains\Catalog\Events\ProductUpdated;
+use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Catalog\Models\ProductImage;
 use DomainException;
@@ -83,6 +84,30 @@ final class ProductService
     public function filter(ProductFilterData $filter): LengthAwarePaginator
     {
         return $this->products->filter($filter);
+    }
+
+    /**
+     * Atributos filtráveis disponíveis para a categoria (e suas subcategorias), com contagem de produtos.
+     *
+     * @return array<int, array{id: int, name: string, values: array<int, array{id: int, value: string, count: int}>}>
+     */
+    public function facetsForCategory(Category $category): array
+    {
+        $categoryIds = [$category->id, ...$category->children->pluck('id')->all()];
+
+        return $this->products->facetsForCategories($categoryIds)
+            ->groupBy('attribute_id')
+            ->map(fn ($rows) => [
+                'id'     => (int) $rows->first()->attribute_id,
+                'name'   => $rows->first()->attribute_name,
+                'values' => $rows->map(fn ($r) => [
+                    'id'    => (int) $r->value_id,
+                    'value' => $r->value,
+                    'count' => (int) $r->product_count,
+                ])->values()->all(),
+            ])
+            ->values()
+            ->all();
     }
 
     /** @return LengthAwarePaginator<Product> */

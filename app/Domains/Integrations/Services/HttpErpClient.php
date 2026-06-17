@@ -26,6 +26,9 @@ final class HttpErpClient implements ErpClientInterface
 {
     private const CACHE_TTL = 300; // 5 minutos
 
+    /** Edeltec não retorna quantidade de estoque, apenas o flag "disponivel". */
+    private const AVAILABLE_STOCK_PLACEHOLDER = 999;
+
     public function name(): string
     {
         return 'http_erp';
@@ -37,7 +40,7 @@ final class HttpErpClient implements ErpClientInterface
 
         return Cache::remember($cacheKey, 60, function (): bool {
             try {
-                $response = $this->http()->get('/health');
+                $response = $this->http()->get('/produtos', ['per_page' => 1]);
 
                 return $response->successful();
             } catch (\Throwable) {
@@ -57,10 +60,9 @@ final class HttpErpClient implements ErpClientInterface
 
             do {
                 try {
-                    $response = $this->http()->get('/products', [
+                    $response = $this->http()->get('/produtos', [
                         'page'     => $page,
                         'per_page' => 100,
-                        'active'   => true,
                     ]);
 
                     $response->throw();
@@ -154,7 +156,7 @@ final class HttpErpClient implements ErpClientInterface
         }
 
         // Preço: aceita centavos (int) ou reais (float)
-        $rawPrice = $item['price'] ?? $item['preco'] ?? $item['valor'] ?? 0;
+        $rawPrice = $item['price'] ?? $item['preco'] ?? $item['preco_venda'] ?? $item['valor'] ?? 0;
         $priceCents = is_float($rawPrice) || (is_string($rawPrice) && str_contains($rawPrice, '.'))
             ? (int) round((float) $rawPrice * 100)
             : (int) $rawPrice;
@@ -164,7 +166,42 @@ final class HttpErpClient implements ErpClientInterface
             ? (is_float($rawCompare) ? (int) round((float) $rawCompare * 100) : (int) $rawCompare)
             : null;
 
-        $stock = (int) ($item['stock'] ?? $item['estoque'] ?? $item['quantidade'] ?? 0);
+        // Edeltec não informa quantidade real, apenas o flag booleano "disponivel"
+        $stock = array_key_exists('disponivel', $item)
+            ? ((bool) $item['disponivel'] ? self::AVAILABLE_STOCK_PLACEHOLDER : 0)
+            : (int) ($item['stock'] ?? $item['estoque'] ?? $item['quantidade'] ?? 0);
+
+        $specifications = array_filter([
+            'Potência do Kit'     => isset($item['potencia_kit_kwp']) ? $item['potencia_kit_kwp'].' kWp' : null,
+            'Tensão'              => $item['tensao'] ?? null,
+            'Marca do Inversor'   => $item['marca_inversor'] ?? null,
+            'Potência do Inversor' => isset($item['potencia_inversor']) ? $item['potencia_inversor'].' kW' : null,
+            'Marca do Painel'     => $item['marca_painel'] ?? null,
+            'Potência do Painel'  => isset($item['potencia_painel']) ? $item['potencia_painel'].' W' : null,
+            'Estrutura'           => $item['estrutura'] ?? null,
+            'Fornecedor'          => $item['fornecedor'] ?? null,
+        ], fn ($value) => $value !== null);
+
+        $categoryName = $item['categoria'] ?? $item['category'] ?? $item['categoria_nome'] ?? null;
+
+        // Álbum de fotos reais do kit — a primeira imagem é a capa do produto
+        $albumUrls = collect($item['imagens'] ?? [])
+            ->sortByDesc(fn ($img) => (bool) ($img['principal'] ?? false))
+            ->pluck('url')
+            ->filter()
+            ->values()
+            ->all();
+
+        // Demais imagens (painel, inversor e logos das marcas) entram na galeria depois do álbum
+        $imageUrls = array_values(array_unique(array_filter([
+            ...$albumUrls,
+            $item['image_url'] ?? null,
+            $item['imagem'] ?? null,
+            $item['marca_painel_imagem'] ?? null,
+            $item['marca_inversor_imagem'] ?? null,
+            $item['marca_painel_logo'] ?? null,
+            $item['marca_inversor_logo'] ?? null,
+        ])));
 
         return new ErpProductData(
             externalId: $externalId,
@@ -174,8 +211,10 @@ final class HttpErpClient implements ErpClientInterface
             stockQuantity: $stock,
             compareAtPriceCents: $compareCents,
             weightGrams: isset($item['weight']) ? (int) ($item['weight'] * 1000) : null,
-            description: $item['description'] ?? $item['descricao_completa'] ?? null,
-            imageUrl: $item['image_url'] ?? $item['imagem'] ?? null,
+            description: $item['description'] ?? $item['descricao_completa'] ?? $item['observacoes'] ?? null,
+            specifications: $specifications !== [] ? $specifications : null,
+            imageUrls: $imageUrls,
+            categoryName: is_string($categoryName) && $categoryName !== '' ? $categoryName : null,
         );
     }
 }

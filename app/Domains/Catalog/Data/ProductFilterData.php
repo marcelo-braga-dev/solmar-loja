@@ -21,6 +21,8 @@ final class ProductFilterData extends Data
         public readonly int $perPage = 24,
         /** @var int[] */
         public readonly array $attributeValueIds = [],
+        /** @var int[] Categorias explicitamente selecionadas (ex.: várias subcategorias irmãs); sobrepõe categoryId. */
+        public readonly array $categoryIds = [],
     ) {}
 
     public function sortColumn(): string

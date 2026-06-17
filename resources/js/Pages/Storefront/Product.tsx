@@ -503,7 +503,7 @@ export default function ProductPage({ product, relatedProducts, frequentlyBought
                                 <Box
                                     component="img"
                                     src={images[0].url}
-                                    sx={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 1, bgcolor: '#F8F9FA', flexShrink: 0, display: { xs: 'none', sm: 'block' } }}
+                                    sx={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 1, bgcolor: '#F8F9FA', flexShrink: 0, display: { xs: 'none', sm: 'block' } }}
                                 />
                             )}
                             {/* Nome e preço */}

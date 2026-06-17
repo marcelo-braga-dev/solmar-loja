@@ -36,7 +36,7 @@ Você está trabalhando no **SolarHub Commerce**, uma plataforma de e-commerce c
 6. Escreva testes (Pest) para tudo. Cobertura mínima **80%**.
 7. Código, nomes de variáveis e comentários técnicos em **inglês**. Conteúdo de UI em **português (pt-BR)**.
 8. Antes de criar um arquivo novo, verifique se já existe um padrão equivalente no projeto e siga-o.
-9. **Nunca** usar `object-fit: contain` com padding em imagens de produto — usar `cover` sem padding.
+9. Imagens de produto **sempre** usam `object-fit: contain` (sem cortar a foto em nenhuma direção), com `bgcolor` neutro no container para preencher as bordas — nunca `cover`.
 10. Sempre rodar `npm run build` ao final para confirmar 0 erros TypeScript.
 
 Quando estiver em dúvida sobre uma decisão arquitetural, **consulte os arquivos em `/docs`** listados na seção 2.
@@ -308,7 +308,7 @@ Se algum desses oito itens não fizer sentido para uma feature trivial, **docume
 - ❌ Usar `using(Pivot::class)` em relacionamentos ManyToMany com tabela pivot sem `updated_at`
 - ❌ `Pagination data={items}` — a prop correta é `pagination={items}`
 - ❌ Textos e labels da UI em inglês — sempre português (pt-BR)
-- ❌ `objectFit: 'contain'` com padding em imagens de produto — usar `cover` sem padding
+- ❌ `objectFit: 'cover'` em imagens de produto — sempre `contain`, nunca cortar a foto
 
 ---
 

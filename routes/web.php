@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReviewAdminController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\MenuItemController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\Auth\EmailVerificationController;
@@ -81,6 +82,8 @@ Route::get('/sobre', [StaticPageController::class, 'sobre'])->name('about');
 Route::get('/contato', [StaticPageController::class, 'contato'])->name('contact');
 Route::post('/contato', [StaticPageController::class, 'contatoStore'])->name('contact.store');
 Route::get('/privacidade', [StaticPageController::class, 'privacidade'])->name('privacy');
+Route::get('/vagas', [StaticPageController::class, 'vagas'])->name('careers');
+Route::get('/ajuda', [StaticPageController::class, 'ajuda'])->name('help');
 
 // Reviews e Q&A
 Route::post('/produtos/{product}/reviews', [ReviewController::class, 'store'])->middleware('auth')->name('reviews.store');
@@ -285,6 +288,12 @@ Route::middleware(['auth', 'admin', 'two-factor'])->prefix('admin')->name('admin
     Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+    // Menu principal da loja
+    Route::get('menu-items', [MenuItemController::class, 'index'])->name('menu-items.index');
+    Route::post('menu-items', [MenuItemController::class, 'store'])->name('menu-items.store');
+    Route::put('menu-items/{menuItem}', [MenuItemController::class, 'update'])->name('menu-items.update');
+    Route::delete('menu-items/{menuItem}', [MenuItemController::class, 'destroy'])->name('menu-items.destroy');
 
     // Marcas
     Route::get('brands', [BrandController::class, 'index'])->name('brands.index');
