@@ -341,11 +341,18 @@ Sincronização diária (e incremental de hora em hora) do catálogo de kits fot
 
 ### Homepage — Redesign Completo
 - **Hero:** gradiente profundo `#0D1B3E → #0B5FFF`, anéis decorativos, texto com gradiente amarelo, badges flutuantes (CO₂, garantia, ICMS)
+- **Hero — faixa de confiança:** avaliação 4,9/5 (1.200+ avaliações) + selo "Site seguro · dados protegidos" (`GppGoodIcon`), separada por borda sutil
 - **Benefits bar:** 5 benefícios em grid horizontal com borda divisória
+- **Como Funciona:** 4 passos (Escolha/Simule/Compre/Receba) em cards com conectores `ArrowForwardIcon`
 - **Stats section:** 15.000+ clientes, 50MW+ instalados, 12.000+ pedidos, 25 anos garantia
+- **Por que comprar com a SolarHub:** 6 pilares de confiança (compra segura, produtos homologados, simulador, equipe especializada, garantia estendida, entrega monitorada)
 - **Categorias:** gradiente por tipo (`CAT_STYLE` map), emoji, hover com sombra colorida
+- **Aprenda sobre energia solar:** teaser dos 3 posts mais recentes do Blog (`Post::published()`), com imagem/fallback gradiente, data e tempo de leitura, link para `/blog`
 - **Testimoniais:** 3 depoimentos com estrelas, nome, cidade, produto
+- **Faixa de confiança e segurança:** chips de meios de pagamento (Pix, Boleto, bandeiras, 12x sem juros) + selos de segurança (SSL, criptografia, garantia oficial, LGPD)
 - **Brands:** tags elegantes com hover colorido
+- **Animações:** componente `Reveal` (IntersectionObserver, fade + slide-up) aplicado a todas as seções de conteúdo; Hero, benefits bar, faixa de confiança e CTA final ficam visíveis de imediato
+- **Fonte de dados:** `HomeController` agora também envia `latestPosts` (3 posts publicados mais recentes, com `content` incluído no `select` pois `Post::readingTime()` depende dele)
 
 ### ProductGallery.tsx — Galeria Profissional
 - **Layout:** thumbnails verticais à esquerda (desktop) / horizontais abaixo (mobile)

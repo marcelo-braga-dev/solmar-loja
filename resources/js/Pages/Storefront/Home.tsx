@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { Box, Container, Typography, Button, Stack, Grid, Paper, Avatar, Chip, alpha } from '@mui/material';
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
@@ -14,17 +15,71 @@ import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import StarIcon from '@mui/icons-material/Star';
 import BuildIcon from '@mui/icons-material/Build';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import InsightsIcon from '@mui/icons-material/Insights';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import LockIcon from '@mui/icons-material/Lock';
+import GppGoodIcon from '@mui/icons-material/GppGood';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
+import ArticleIcon from '@mui/icons-material/Article';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
 import ProductCard from '@/Components/storefront/ProductCard';
 import type { PageProps } from '@inertiajs/react';
 import type { Product, Category, Brand } from '@/Types/catalog';
 import type { SharedProps } from '@/Types/inertia';
 
+interface PostTeaser {
+    id: number;
+    title: string;
+    slug: string;
+    excerpt: string | null;
+    cover_image: string | null;
+    published_at: string;
+    reading_time: number;
+}
+
 interface Props extends PageProps {
     featuredProducts: Product[];
     onSaleProducts: Product[];
     mainCategories: Category[];
     brands: Brand[];
+    latestPosts: PostTeaser[];
+}
+
+/** Revela a seção com fade + slide-up suave quando ela entra na viewport. */
+function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+    const ref = useRef<HTMLDivElement>(null);
+    const [visible, setVisible] = useState(false);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { threshold: 0.12, rootMargin: '0px 0px -80px 0px' }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <Box
+            ref={ref}
+            sx={{
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateY(0)' : 'translateY(28px)',
+                transition: `opacity 0.7s ease ${delay}ms, transform 0.7s ease ${delay}ms`,
+            }}
+        >
+            {children}
+        </Box>
+    );
 }
 
 function formatBRLShort(cents: number) {
@@ -58,7 +113,23 @@ const STATS = [
     { value: '25 anos', label: 'Garantia de geração', icon: <VerifiedIcon sx={{ fontSize: 28 }} /> },
 ];
 
-export default function Home({ featuredProducts, onSaleProducts, mainCategories, brands }: Props) {
+const WHY_US = [
+    { icon: <LockIcon />, title: 'Compra 100% Segura', desc: 'Pagamento criptografado (SSL) e proteção antifraude em todas as etapas.', color: '#0B5FFF' },
+    { icon: <WorkspacePremiumIcon />, title: 'Produtos Homologados', desc: 'Painéis e inversores certificados INMETRO, compatíveis com as normas da ANEEL.', color: '#7C3AED' },
+    { icon: <InsightsIcon />, title: 'Simulador Inteligente', desc: 'Calcule sua economia real em segundos com dados de irradiação e tarifa do seu estado.', color: '#059669' },
+    { icon: <SupportAgentIcon />, title: 'Equipe Especializada', desc: 'Suporte técnico humano antes, durante e depois da sua compra.', color: '#EA580C' },
+    { icon: <VerifiedIcon />, title: 'Garantia Estendida', desc: 'Até 25 anos de garantia de geração nos painéis solares.', color: '#DC2626' },
+    { icon: <LocalShippingIcon />, title: 'Entrega Monitorada', desc: 'Rastreamento em tempo real e frete para todo o território nacional.', color: '#0284C7' },
+];
+
+const HOW_IT_WORKS = [
+    { step: '01', icon: <BuildIcon />, title: 'Escolha ou monte seu kit', desc: 'Catálogo completo ou Kit Builder guiado passo a passo.' },
+    { step: '02', icon: <BoltIcon />, title: 'Simule sua economia', desc: 'Veja o payback estimado antes de fechar a compra.' },
+    { step: '03', icon: <PaymentIcon />, title: 'Compre com segurança', desc: 'Pix, boleto ou cartão em até 12x sem juros.' },
+    { step: '04', icon: <SolarPowerIcon />, title: 'Receba e gere energia', desc: 'Entrega rastreada e suporte na instalação do seu sistema.' },
+];
+
+export default function Home({ featuredProducts, onSaleProducts, mainCategories, brands, latestPosts }: Props) {
     const { branding } = usePage<SharedProps>().props;
     const freeShippingMin = branding?.free_shipping_min_cents ?? 200000;
     const freeShippingEnabled = branding?.free_shipping_enabled ?? true;
@@ -161,7 +232,7 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                                 </Button>
                             </Stack>
 
-                            <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+                            <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', rowGap: 1, mb: 3 }}>
                                 {[
                                     { icon: '✓', text: 'Frete Grátis' },
                                     { icon: '✓', text: 'Parcele em 12x' },
@@ -172,6 +243,21 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                                         <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: 14 }}>{item.text}</Typography>
                                     </Stack>
                                 ))}
+                            </Stack>
+
+                            <Stack direction="row" spacing={2.5} sx={{ flexWrap: 'wrap', rowGap: 1.5, alignItems: 'center', pt: 1, borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+                                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                                    {[...Array(5)].map((_, i) => (
+                                        <StarIcon key={i} sx={{ color: '#FFB300', fontSize: 16 }} />
+                                    ))}
+                                    <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: 13, ml: 0.5 }}>
+                                        4,9/5 · 1.200+ avaliações
+                                    </Typography>
+                                </Stack>
+                                <Stack direction="row" spacing={0.6} sx={{ alignItems: 'center' }}>
+                                    <GppGoodIcon sx={{ fontSize: 17, color: 'rgba(255,255,255,0.6)' }} />
+                                    <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>Site seguro · dados protegidos</Typography>
+                                </Stack>
                             </Stack>
                         </Grid>
 
@@ -265,6 +351,56 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                 </Container>
             </Box>
 
+            {/* ── COMO FUNCIONA ─────────────────────────────────────────────── */}
+            <Reveal>
+                <Box sx={{ py: { xs: 6, md: 8 }, bgcolor: '#F8F9FC' }}>
+                    <Container maxWidth="lg">
+                        <Box sx={{ textAlign: 'center', mb: 5 }}>
+                            <Chip label="Como funciona" color="primary" size="small" sx={{ mb: 1.5, fontWeight: 600 }} />
+                            <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.5px', fontSize: { xs: '1.8rem', md: '2.4rem' } }}>
+                                Da escolha à energia gerada, em 4 passos
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', fontSize: 16, maxWidth: 560, mx: 'auto' }}>
+                                Um processo simples, transparente e acompanhado por especialistas do início ao fim
+                            </Typography>
+                        </Box>
+                        <Grid container spacing={3}>
+                            {HOW_IT_WORKS.map((item, i) => (
+                                <Grid key={item.step} size={{ xs: 12, sm: 6, md: 3 }}>
+                                    <Box sx={{
+                                        position: 'relative', height: '100%',
+                                        bgcolor: 'white', borderRadius: 3, p: 3,
+                                        border: '1px solid rgba(0,0,0,0.06)',
+                                        transition: 'all 0.25s',
+                                        '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(11,95,255,0.12)' },
+                                    }}>
+                                        <Typography sx={{ position: 'absolute', top: 12, right: 16, fontSize: 36, fontWeight: 900, color: alpha('#0B5FFF', 0.07), lineHeight: 1 }}>
+                                            {item.step}
+                                        </Typography>
+                                        <Box sx={{
+                                            width: 48, height: 48, borderRadius: 2.5,
+                                            bgcolor: alpha('#0B5FFF', 0.08), color: 'primary.main',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2,
+                                        }}>
+                                            {item.icon}
+                                        </Box>
+                                        <Typography sx={{ fontWeight: 700, fontSize: 15.5, mb: 0.5 }}>{item.title}</Typography>
+                                        <Typography sx={{ fontSize: 13.5, color: 'text.secondary', lineHeight: 1.5 }}>{item.desc}</Typography>
+                                        {i < HOW_IT_WORKS.length - 1 && (
+                                            <ArrowForwardIcon sx={{
+                                                display: { xs: 'none', md: 'block' },
+                                                position: 'absolute', top: '50%', right: -34, transform: 'translateY(-50%)',
+                                                color: alpha('#0B5FFF', 0.25), fontSize: 22,
+                                            }} />
+                                        )}
+                                    </Box>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Container>
+                </Box>
+            </Reveal>
+
             {/* ── STATS ─────────────────────────────────────────────────────── */}
             <Box sx={{
                 background: 'linear-gradient(135deg, #0D1B3E 0%, #0B3D91 100%)',
@@ -289,8 +425,54 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                 </Container>
             </Box>
 
+            {/* ── POR QUE COMPRAR COM A SOLARHUB ───────────────────────────── */}
+            <Reveal>
+                <Box sx={{ py: { xs: 7, md: 9 }, bgcolor: 'white' }}>
+                    <Container maxWidth="lg">
+                        <Box sx={{ textAlign: 'center', mb: 5 }}>
+                            <Chip label="Por que a SolarHub" color="primary" size="small" sx={{ mb: 1.5, fontWeight: 600 }} />
+                            <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.5px', fontSize: { xs: '1.8rem', md: '2.4rem' } }}>
+                                Tecnologia, segurança e gente especialista
+                            </Typography>
+                            <Typography sx={{ color: 'text.secondary', fontSize: 16, maxWidth: 560, mx: 'auto' }}>
+                                Tudo o que você precisa para comprar com confiança e investir em energia solar sem riscos
+                            </Typography>
+                        </Box>
+                        <Grid container spacing={3}>
+                            {WHY_US.map((item) => (
+                                <Grid key={item.title} size={{ xs: 12, sm: 6, md: 4 }}>
+                                    <Stack
+                                        direction="row"
+                                        spacing={2}
+                                        sx={{
+                                            p: 2.5, borderRadius: 3, height: '100%',
+                                            border: '1px solid rgba(0,0,0,0.06)',
+                                            transition: 'all 0.25s',
+                                            '&:hover': { borderColor: alpha(item.color, 0.3), bgcolor: alpha(item.color, 0.03) },
+                                        }}
+                                    >
+                                        <Box sx={{
+                                            width: 44, height: 44, borderRadius: 2.5, flexShrink: 0,
+                                            bgcolor: alpha(item.color, 0.1), color: item.color,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        }}>
+                                            {item.icon}
+                                        </Box>
+                                        <Box>
+                                            <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.4 }}>{item.title}</Typography>
+                                            <Typography sx={{ fontSize: 13.5, color: 'text.secondary', lineHeight: 1.5 }}>{item.desc}</Typography>
+                                        </Box>
+                                    </Stack>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Container>
+                </Box>
+            </Reveal>
+
             {/* ── CATEGORIAS ────────────────────────────────────────────────── */}
             {mainCategories.length > 0 && (
+              <Reveal>
                 <Box sx={{ py: 8, bgcolor: '#F8F9FC' }}>
                     <Container maxWidth="lg">
                         <Box sx={{ textAlign: 'center', mb: 5 }}>
@@ -350,10 +532,12 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                         </Grid>
                     </Container>
                 </Box>
+              </Reveal>
             )}
 
             {/* ── KIT BUILDER PROMO ────────────────────────────────────────── */}
-            <Box sx={{
+            <Reveal>
+              <Box sx={{
                 background: 'linear-gradient(135deg, #0D1B3E 0%, #0B2454 60%, #0F172A 100%)',
                 py: { xs: 7, md: 9 },
                 position: 'relative', overflow: 'hidden',
@@ -452,10 +636,12 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                         </Grid>
                     </Grid>
                 </Container>
-            </Box>
+              </Box>
+            </Reveal>
 
             {/* ── OFERTAS ───────────────────────────────────────────────────── */}
             {onSaleProducts.length > 0 && (
+              <Reveal>
                 <Box sx={{ py: 8, bgcolor: 'white' }}>
                     <Container maxWidth="lg">
                         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'flex-end' }, mb: 5 }}>
@@ -486,10 +672,12 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                         </Grid>
                     </Container>
                 </Box>
+              </Reveal>
             )}
 
             {/* ── DESTAQUES ─────────────────────────────────────────────────── */}
             {featuredProducts.length > 0 && (
+              <Reveal>
                 <Box sx={{ py: 8, bgcolor: '#F8F9FC' }}>
                     <Container maxWidth="lg">
                         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'flex-end' }, mb: 5 }}>
@@ -520,10 +708,12 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                         </Grid>
                     </Container>
                 </Box>
+              </Reveal>
             )}
 
             {/* ── MARCAS ────────────────────────────────────────────────────── */}
             {brands.length > 0 && (
+              <Reveal>
                 <Box sx={{ py: 6, bgcolor: 'white', borderTop: '1px solid', borderColor: 'divider' }}>
                     <Container maxWidth="lg">
                         <Typography sx={{ textAlign: 'center', color: 'text.secondary', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.5, mb: 3 }}>
@@ -557,10 +747,84 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                         </Box>
                     </Container>
                 </Box>
+              </Reveal>
+            )}
+
+            {/* ── APRENDA SOBRE ENERGIA SOLAR (BLOG) ───────────────────────── */}
+            {latestPosts.length > 0 && (
+                <Reveal>
+                    <Box sx={{ py: { xs: 7, md: 9 }, bgcolor: 'white' }}>
+                        <Container maxWidth="lg">
+                            <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'flex-end' }, mb: 5 }}>
+                                <Box>
+                                    <Chip label="📚 Conteúdo especializado" sx={{ bgcolor: alpha('#7C3AED', 0.08), color: '#7C3AED', fontWeight: 700, mb: 1 }} />
+                                    <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.1, fontSize: { xs: '1.8rem', md: '2.4rem' } }}>
+                                        Aprenda sobre energia solar
+                                    </Typography>
+                                    <Typography sx={{ color: 'text.secondary', mt: 0.5 }}>
+                                        Guias e dicas de especialistas para você decidir com mais confiança
+                                    </Typography>
+                                </Box>
+                                <Button component={Link} href="/blog" endIcon={<ArrowForwardIcon />} sx={{ mt: { xs: 2, sm: 0 }, fontWeight: 600 }}>
+                                    Ver todos os artigos
+                                </Button>
+                            </Stack>
+                            <Grid container spacing={3}>
+                                {latestPosts.map((post) => (
+                                    <Grid key={post.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                                        <Box
+                                            component={Link}
+                                            href={`/blog/${post.slug}`}
+                                            sx={{
+                                                display: 'block', textDecoration: 'none', height: '100%',
+                                                borderRadius: 3, overflow: 'hidden',
+                                                border: '1px solid rgba(0,0,0,0.06)',
+                                                bgcolor: 'white', transition: 'all 0.25s',
+                                                '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 32px rgba(0,0,0,0.1)' },
+                                            }}
+                                        >
+                                            <Box sx={{
+                                                height: 160,
+                                                background: post.cover_image
+                                                    ? `url(/storage/${post.cover_image}) center/cover`
+                                                    : 'linear-gradient(135deg,#0D1B3E,#0B5FFF)',
+                                                display: 'flex', alignItems: post.cover_image ? 'flex-end' : 'center', justifyContent: 'center',
+                                            }}>
+                                                {!post.cover_image && <ArticleIcon sx={{ fontSize: 40, color: 'rgba(255,255,255,0.5)' }} />}
+                                            </Box>
+                                            <Box sx={{ p: 2.5 }}>
+                                                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: 1 }}>
+                                                    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                                                        <CalendarTodayIcon sx={{ fontSize: 13, color: 'text.secondary' }} />
+                                                        <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                                            {new Date(post.published_at).toLocaleDateString('pt-BR')}
+                                                        </Typography>
+                                                    </Stack>
+                                                    <Typography sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                                        · {post.reading_time} min de leitura
+                                                    </Typography>
+                                                </Stack>
+                                                <Typography sx={{ fontWeight: 700, fontSize: 15.5, color: 'text.primary', lineHeight: 1.3, mb: 0.8 }}>
+                                                    {post.title}
+                                                </Typography>
+                                                {post.excerpt && (
+                                                    <Typography sx={{ fontSize: 13.5, color: 'text.secondary', lineHeight: 1.5 }}>
+                                                        {post.excerpt}
+                                                    </Typography>
+                                                )}
+                                            </Box>
+                                        </Box>
+                                    </Grid>
+                                ))}
+                            </Grid>
+                        </Container>
+                    </Box>
+                </Reveal>
             )}
 
             {/* ── TESTIMONIAIS ──────────────────────────────────────────────── */}
-            <Box sx={{ py: 8, bgcolor: '#F8F9FC' }}>
+            <Reveal>
+              <Box sx={{ py: 8, bgcolor: '#F8F9FC' }}>
                 <Container maxWidth="lg">
                     <Box sx={{ textAlign: 'center', mb: 5 }}>
                         <Chip label="💬 Avaliações" color="success" size="small" sx={{ mb: 1.5, fontWeight: 600 }} />
@@ -603,6 +867,49 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                                 </Paper>
                             </Grid>
                         ))}
+                    </Grid>
+                </Container>
+              </Box>
+            </Reveal>
+
+            {/* ── FAIXA DE CONFIANÇA E SEGURANÇA ───────────────────────────── */}
+            <Box sx={{ py: 5, bgcolor: 'white', borderTop: '1px solid', borderColor: 'divider' }}>
+                <Container maxWidth="lg">
+                    <Grid container spacing={3} sx={{ alignItems: 'center' }}>
+                        <Grid size={{ xs: 12, md: 5 }}>
+                            <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1.2, mb: 1.5 }}>
+                                Formas de pagamento
+                            </Typography>
+                            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+                                {['Pix', 'Boleto', 'Visa', 'Mastercard', 'Elo', 'Até 12x sem juros'].map((label) => (
+                                    <Chip
+                                        key={label}
+                                        icon={<CreditCardIcon sx={{ fontSize: 16 }} />}
+                                        label={label}
+                                        size="small"
+                                        sx={{ bgcolor: '#F8F9FC', fontWeight: 600, fontSize: 12.5 }}
+                                    />
+                                ))}
+                            </Stack>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 7 }}>
+                            <Typography sx={{ fontSize: 13, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1.2, mb: 1.5 }}>
+                                Sua compra protegida
+                            </Typography>
+                            <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', rowGap: 1.5 }}>
+                                {[
+                                    { icon: <GppGoodIcon />, text: 'Site seguro SSL' },
+                                    { icon: <LockIcon />, text: 'Pagamento criptografado' },
+                                    { icon: <VerifiedIcon />, text: 'Produtos com garantia oficial' },
+                                    { icon: <SecurityIcon />, text: 'Dados protegidos (LGPD)' },
+                                ].map((item) => (
+                                    <Stack key={item.text} direction="row" spacing={0.8} sx={{ alignItems: 'center' }}>
+                                        <Box sx={{ color: 'success.main', display: 'flex' }}>{item.icon}</Box>
+                                        <Typography sx={{ fontSize: 13, color: 'text.secondary', fontWeight: 500 }}>{item.text}</Typography>
+                                    </Stack>
+                                ))}
+                            </Stack>
+                        </Grid>
                     </Grid>
                 </Container>
             </Box>
