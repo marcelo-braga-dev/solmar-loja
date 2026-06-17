@@ -307,6 +307,18 @@ npm run dev
 
 **#17 (PWA push notifications):** não implementado — requer VAPID keys, Service Worker, tabela de push subscriptions, integração com gateway de notificação — escopo de sprint dedicado.
 
+### FASE 16 — Integração AppSolar (Distribuidor Edeltec) ✅
+
+Sincronização diária (e incremental de hora em hora) do catálogo de kits fotovoltaicos da Edeltec via API REST do AppSolar (`GET /api/v1/loja/produtos`), substituindo cadastro manual desses produtos.
+
+- **`solar_kit_specifications`** (1:1 com `products`) — espelha **todos** os campos retornados pela API (potência do kit, tensão, preço de custo/venda do fornecedor, marca/logo/imagem/potência do inversor e do painel, estrutura, fornecedor, tabela HTML de componentes sanitizada, observações, `atualizado_em`). Nenhum dado da API é descartado.
+- **`AppSolarHttpClient`** (`Integrations/Services`) — Bearer token, paginação seguindo `links.next` (`per_page=200`), retry com backoff exponencial em 429/5xx, falha imediata em 401/404/422, throttle entre páginas para respeitar o limite de 60 req/min.
+- **`AppSolarProductSyncService`** — upsert por SKU (cria `Product` em `draft` ou atualiza preservando status local), cria/atualiza `Brand` a partir do painel/inversor, grava imagens do produto **usando a URL da AppSolar diretamente** (`ProductImage.tag` = `panel`/`inverter`), arquiva kits que saíram do catálogo numa sync completa, audita tudo em `sync_logs` (`source = appsolar`).
+- **`SyncAppSolarProductsJob`** — fila `sync`; agendado `dailyAt('02:00')` (completa) e `hourly()` (incremental) em `routes/console.php`; comando manual `php artisan appsolar:sync [--full]`.
+- **Painel Admin** — nova aba "AppSolar (Edeltec)" em `/admin/integration`: status de configuração, KPIs, histórico de sincronizações, botões de sincronização manual (completa/incremental).
+- **Config:** `APPSOLAR_API_BASE_URL`, `APPSOLAR_API_TOKEN`, `APPSOLAR_API_TIMEOUT`, `APPSOLAR_SYNC_ENABLED` no `.env`.
+- **Testes:** `AppSolarProductDataTest`, `HtmlSanitizerTest`, `AppSolarHttpClientTest` (paginação, 401/404/429), `AppSolarProductSyncServiceTest` (create/update/preserva status/arquivamento/erro por item), `AppSolarIntegrationTest` (painel admin) — 19 testes, todos verdes.
+
 ---
 
 ## Extras — Design e UX
@@ -525,10 +537,15 @@ PAYMENT_GATEWAY=asaas
 ASAAS_API_KEY=sua_chave_aqui
 ASAAS_ENVIRONMENT=production
 
-# ERP / Distribuidor
+# ERP / Distribuidor (genérico)
 ERP_BASE_URL=https://api.seu-distribuidor.com.br
 ERP_API_KEY=sua_chave_api
 ERP_SYNC_ENABLED=true
+
+# AppSolar — distribuidor Edeltec (catálogo de kits fotovoltaicos)
+APPSOLAR_API_BASE_URL=https://crm.suaempresa.com.br/api/v1/loja
+APPSOLAR_API_TOKEN=token_fornecido_pelo_time_appsolar
+APPSOLAR_SYNC_ENABLED=true
 
 # Login Social Google
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
@@ -541,7 +558,8 @@ GOOGLE_REDIRECT_URL=https://seudominio.com.br/auth/google/callback
 - [ ] `npm run build` e deploy de `public/build/`
 - [ ] Horizon como serviço systemd
 - [ ] Cron: `* * * * * php artisan schedule:run`
-- [ ] Adaptar `HttpErpClient::mapProduct()` para o formato real do distribuidor
+- [ ] Adaptar `HttpErpClient::mapProduct()` para o formato real do distribuidor (integração ERP genérica)
+- [ ] Solicitar token e URL de produção do AppSolar; rodar `php artisan appsolar:sync --full` na primeira carga
 - [ ] Google OAuth: criar projeto no Google Console e habilitar Google+ API
 - [ ] SSL configurado (obrigatório para OAuth e webhooks)
 
@@ -551,7 +569,7 @@ GOOGLE_REDIRECT_URL=https://seudominio.com.br/auth/google/callback
 
 ### 🔴 Crítico
 1. **Asaas** — `PAYMENT_GATEWAY=asaas` + `ASAAS_API_KEY`
-2. **ERP** — `ERP_BASE_URL` + `ERP_API_KEY` + adaptar `mapProduct()`
+2. **AppSolar** — solicitar `APPSOLAR_API_TOKEN` e a URL real de produção ao time do AppSolar, configurar `APPSOLAR_API_BASE_URL` e `APPSOLAR_SYNC_ENABLED=true`, e rodar `php artisan appsolar:sync --full` para a primeira carga completa do catálogo
 3. **Google OAuth** — Google Console + variáveis GOOGLE_*
 4. **Notas Fiscais** — integração Focus NFe / NFe.io (obrigatório B2B)
 

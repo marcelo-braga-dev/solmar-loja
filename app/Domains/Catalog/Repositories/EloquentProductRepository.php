@@ -32,6 +32,11 @@ final class EloquentProductRepository implements ProductRepositoryInterface
         return Product::query()->where('uuid', $uuid)->first();
     }
 
+    public function findBySku(string $sku): ?Product
+    {
+        return Product::query()->where('sku', $sku)->first();
+    }
+
     /** @return LengthAwarePaginator<Product> */
     public function filter(ProductFilterData $filter): LengthAwarePaginator
     {
@@ -158,6 +163,14 @@ final class EloquentProductRepository implements ProductRepositoryInterface
     {
         $product->update($this->toAttributes($data));
         $this->syncCategories($product, $data->categoryIds);
+
+        return $product->fresh(['brand', 'categories', 'images']) ?? $product;
+    }
+
+    /** @param array<string, mixed> $attributes */
+    public function updateAttributes(Product $product, array $attributes): Product
+    {
+        $product->update($attributes);
 
         return $product->fresh(['brand', 'categories', 'images']) ?? $product;
     }

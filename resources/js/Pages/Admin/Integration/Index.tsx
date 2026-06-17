@@ -39,6 +39,8 @@ interface SyncLog {
     created_items: number;
     updated_items: number;
     error_items: number;
+    archived_items: number;
+    notes: string | null;
     errors: Record<string, unknown>[] | null;
     started_at: string | null;
     finished_at: string | null;
@@ -53,11 +55,31 @@ interface Stats {
     products_synced: number;
 }
 
+interface AppSolarConfig {
+    base_url: string;
+    token_set: boolean;
+    timeout: number;
+    sync_enabled: boolean;
+    full_sync_schedule: string;
+    incremental_schedule: string;
+}
+
+interface AppSolarStats {
+    total_syncs: number;
+    success_rate: number;
+    last_sync_at: string | null;
+    last_status: string | null;
+    kits_synced: number;
+}
+
 interface Props extends PageProps {
     config: Config;
     syncLogs: SyncLog[];
     stats: Stats;
     schema: Record<string, unknown>;
+    appsolarConfig: AppSolarConfig;
+    appsolarSyncLogs: SyncLog[];
+    appsolarStats: AppSolarStats;
     envConfig: { payment_gateways: { value: string; label: string }[] };
 }
 
@@ -124,14 +146,37 @@ function JsonViewer({ data, depth = 0 }: { data: unknown; depth?: number }) {
     return null;
 }
 
-export default function IntegrationIndex({ config, syncLogs, stats, schema, envConfig }: Props) {
+export default function IntegrationIndex({ config, syncLogs, stats, schema, appsolarConfig, appsolarSyncLogs, appsolarStats, envConfig }: Props) {
     const [tab, setTab] = useState(0);
     const [syncing, setSyncing] = useState(false);
     const [testing, setTesting] = useState(false);
     const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
     const [snackbar, setSnackbar] = useState<string | null>(null);
+    const [appsolarSyncing, setAppsolarSyncing] = useState<'full' | 'incremental' | null>(null);
+    const [appsolarSyncResult, setAppsolarSyncResult] = useState<{ success: boolean; message: string } | null>(null);
     const csrfToken = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+
+    const runAppSolarSync = async (full: boolean) => {
+        setAppsolarSyncing(full ? 'full' : 'incremental');
+        setAppsolarSyncResult(null);
+        try {
+            const res = await fetch('/admin/integration/appsolar/sync', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ full }),
+            });
+            const data = await res.json();
+            setAppsolarSyncResult(data);
+            if (data.success) router.reload({ only: ['appsolarSyncLogs', 'appsolarStats'] });
+        } catch {
+            setAppsolarSyncResult({ success: false, message: 'Erro de comunicação com o servidor.' });
+        } finally {
+            setAppsolarSyncing(null);
+        }
+    };
+
+    const isAppSolarConfigured = !!appsolarConfig.base_url && appsolarConfig.token_set;
 
     const runSync = async () => {
         setSyncing(true);
@@ -295,6 +340,7 @@ export default function IntegrationIndex({ config, syncLogs, stats, schema, envC
                         <Tab label="Histórico de Sincronizações" />
                         <Tab label="Schema JSON da API" />
                         <Tab label="Mapeamento de Campos" />
+                        <Tab label="AppSolar (Edeltec)" />
                     </Tabs>
                 </Box>
 
@@ -575,6 +621,151 @@ export default function IntegrationIndex({ config, syncLogs, stats, schema, envC
                                 os nomes dos campos ao formato exato da sua API de distribuidor.
                             </Typography>
                         </Alert>
+                    </Box>
+                )}
+
+                {/* ── Tab 4: AppSolar (Edeltec) ──────────────────────────── */}
+                {tab === 4 && (
+                    <Box sx={{ p: 3 }}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ justifyContent: 'space-between', alignItems: { sm: 'flex-start' }, mb: 3, gap: 2 }}>
+                            <Box>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Catálogo AppSolar (Distribuidor Edeltec)</Typography>
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                    Sincroniza os kits fotovoltaicos da Edeltec via API do AppSolar. Todos os campos retornados pela API são importados.
+                                </Typography>
+                            </Box>
+                            <Stack direction="row" spacing={1.5} sx={{ flexShrink: 0 }}>
+                                <Button
+                                    variant="outlined"
+                                    startIcon={appsolarSyncing === 'incremental' ? <CircularProgress size={14} /> : <SyncIcon />}
+                                    onClick={() => runAppSolarSync(false)}
+                                    disabled={appsolarSyncing !== null || !isAppSolarConfigured}
+                                    size="small"
+                                >
+                                    Sincronizar Incremental
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    startIcon={appsolarSyncing === 'full' ? <CircularProgress size={14} color="inherit" /> : <SyncIcon />}
+                                    onClick={() => runAppSolarSync(true)}
+                                    disabled={appsolarSyncing !== null || !isAppSolarConfigured}
+                                    size="small"
+                                >
+                                    Sincronizar Completo
+                                </Button>
+                            </Stack>
+                        </Stack>
+
+                        {appsolarSyncResult && (
+                            <Alert severity={appsolarSyncResult.success ? 'success' : 'error'} sx={{ mb: 2 }} onClose={() => setAppsolarSyncResult(null)}>
+                                {appsolarSyncResult.message}
+                            </Alert>
+                        )}
+
+                        {!isAppSolarConfigured && (
+                            <Alert severity="warning" sx={{ mb: 3 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>Integração AppSolar não configurada</Typography>
+                                <Typography variant="caption">
+                                    Configure <code>APPSOLAR_API_BASE_URL</code> e <code>APPSOLAR_API_TOKEN</code> no <code>.env</code> para ativar a sincronização.
+                                </Typography>
+                            </Alert>
+                        )}
+
+                        <Grid container spacing={2.5} sx={{ mb: 3 }}>
+                            {[
+                                { label: 'Kits Sincronizados', value: String(appsolarStats.kits_synced), color: '#0B5FFF' },
+                                { label: 'Total de Sincronizações', value: String(appsolarStats.total_syncs), color: '#7C3AED' },
+                                { label: 'Taxa de Sucesso', value: `${appsolarStats.success_rate}%`, color: '#059669' },
+                                { label: 'Última Sincronização', value: appsolarStats.last_sync_at ?? 'Nunca', color: '#EA580C' },
+                            ].map((kpi) => (
+                                <Grid key={kpi.label} size={{ xs: 12, sm: 6, lg: 3 }}>
+                                    <Paper elevation={0} sx={{ p: 2, border: '1px solid rgba(0,0,0,0.06)', borderRadius: 2 }}>
+                                        <Typography sx={{ fontSize: 20, fontWeight: 800, color: kpi.color }}>{kpi.value}</Typography>
+                                        <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.3 }}>{kpi.label}</Typography>
+                                    </Paper>
+                                </Grid>
+                            ))}
+                        </Grid>
+
+                        <Grid container spacing={3} sx={{ mb: 3 }}>
+                            <Grid size={{ xs: 12, md: 6 }}>
+                                <Stack spacing={1.5}>
+                                    {[
+                                        { label: 'URL da API (APPSOLAR_API_BASE_URL)', value: appsolarConfig.base_url || '❌ Não configurado', ok: !!appsolarConfig.base_url },
+                                        { label: 'Token (APPSOLAR_API_TOKEN)', value: appsolarConfig.token_set ? '✓ Configurado (oculto)' : '❌ Não configurado', ok: appsolarConfig.token_set },
+                                        { label: 'Sync Completo', value: appsolarConfig.full_sync_schedule, ok: true },
+                                        { label: 'Sync Incremental', value: appsolarConfig.incremental_schedule, ok: true },
+                                    ].map((item) => (
+                                        <Stack key={item.label} direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', py: 1, borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>{item.label}</Typography>
+                                            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                                                <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: 13 }}>{item.value}</Typography>
+                                                {item.ok
+                                                    ? <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
+                                                    : <ErrorIcon sx={{ fontSize: 16, color: 'error.main' }} />}
+                                            </Stack>
+                                        </Stack>
+                                    ))}
+                                </Stack>
+                            </Grid>
+                        </Grid>
+
+                        {appsolarSyncLogs.length === 0 ? (
+                            <Box sx={{ py: 6, textAlign: 'center' }}>
+                                <SyncIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                    Nenhuma sincronização com o AppSolar executada ainda.
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <TableContainer>
+                                <Table>
+                                    <TableHead>
+                                        <TableRow sx={{ bgcolor: '#FAFAFA' }}>
+                                            {['#', 'Status', 'Iniciado em', 'Duração', 'Total', 'Criados', 'Atualizados', 'Arquivados', 'Erros'].map((h) => (
+                                                <TableCell key={h} sx={{ fontSize: 11, fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, py: 1 }}>
+                                                    {h}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {appsolarSyncLogs.map((log) => (
+                                            <TableRow key={log.id} hover sx={{ '& td': { py: 1.5 } }}>
+                                                <TableCell sx={{ fontFamily: 'monospace', fontSize: 12, color: 'text.secondary' }}>#{log.id}</TableCell>
+                                                <TableCell>
+                                                    <Chip
+                                                        icon={STATUS_ICON[log.status] as React.ReactElement}
+                                                        label={log.status_label}
+                                                        color={STATUS_COLOR[log.status] ?? 'default'}
+                                                        size="small"
+                                                        sx={{ fontWeight: 600, fontSize: 11 }}
+                                                    />
+                                                </TableCell>
+                                                <TableCell sx={{ fontSize: 13 }}>
+                                                    {log.started_at ?? '—'}
+                                                    {log.notes && (
+                                                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>{log.notes}</Typography>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell sx={{ fontSize: 13, color: 'text.secondary' }}>
+                                                    {log.duration_s !== null ? `${log.duration_s}s` : '—'}
+                                                </TableCell>
+                                                <TableCell align="center"><Typography variant="body2" sx={{ fontWeight: 700 }}>{log.total_items}</Typography></TableCell>
+                                                <TableCell align="center"><Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>{log.created_items}</Typography></TableCell>
+                                                <TableCell align="center"><Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600 }}>{log.updated_items}</Typography></TableCell>
+                                                <TableCell align="center"><Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{log.archived_items}</Typography></TableCell>
+                                                <TableCell align="center">
+                                                    <Typography variant="body2" sx={{ color: log.error_items > 0 ? 'error.main' : 'text.secondary', fontWeight: log.error_items > 0 ? 700 : 400 }}>
+                                                        {log.error_items}
+                                                    </Typography>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        )}
                     </Box>
                 )}
             </Paper>

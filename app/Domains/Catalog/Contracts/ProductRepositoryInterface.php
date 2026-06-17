@@ -18,6 +18,8 @@ interface ProductRepositoryInterface
 
     public function findByUuid(string $uuid): ?Product;
 
+    public function findBySku(string $sku): ?Product;
+
     /** @return LengthAwarePaginator<Product> */
     public function filter(ProductFilterData $filter): LengthAwarePaginator;
 
@@ -36,6 +38,14 @@ interface ProductRepositoryInterface
     public function create(ProductData $data): Product;
 
     public function update(Product $product, ProductData $data): Product;
+
+    /**
+     * Atualiza apenas os atributos informados, preservando os demais — usado por
+     * sincronizações externas que não devem sobrescrever campos administrados localmente.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function updateAttributes(Product $product, array $attributes): Product;
 
     public function delete(Product $product): void;
 }

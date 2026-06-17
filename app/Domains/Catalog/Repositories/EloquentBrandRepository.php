@@ -9,6 +9,7 @@ use App\Domains\Catalog\Data\BrandData;
 use App\Domains\Catalog\Models\Brand;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 
 final class EloquentBrandRepository implements BrandRepositoryInterface
 {
@@ -40,16 +41,37 @@ final class EloquentBrandRepository implements BrandRepositoryInterface
         return Brand::query()->find($id);
     }
 
+    public function findOrCreateByName(string $name, ?string $logoUrl = null): Brand
+    {
+        $slug = Str::slug($name);
+        $brand = Brand::query()->where('slug', $slug)->first();
+
+        if ($brand === null) {
+            return Brand::create([
+                'name' => $name,
+                'slug' => $slug,
+                'logo' => $logoUrl,
+                'is_active' => true,
+            ]);
+        }
+
+        if ($logoUrl !== null && $brand->logo === null) {
+            $brand->update(['logo' => $logoUrl]);
+        }
+
+        return $brand;
+    }
+
     public function create(BrandData $data): Brand
     {
         return Brand::create([
-            'name'             => $data->name,
-            'slug'             => $data->slug,
-            'logo'             => $data->logo,
-            'description'      => $data->description,
-            'is_active'        => $data->isActive,
-            'website'          => $data->website,
-            'meta_title'       => $data->metaTitle,
+            'name' => $data->name,
+            'slug' => $data->slug,
+            'logo' => $data->logo,
+            'description' => $data->description,
+            'is_active' => $data->isActive,
+            'website' => $data->website,
+            'meta_title' => $data->metaTitle,
             'meta_description' => $data->metaDescription,
         ]);
     }
@@ -57,13 +79,13 @@ final class EloquentBrandRepository implements BrandRepositoryInterface
     public function update(Brand $brand, BrandData $data): Brand
     {
         $brand->update([
-            'name'             => $data->name,
-            'slug'             => $data->slug,
-            'logo'             => $data->logo,
-            'description'      => $data->description,
-            'is_active'        => $data->isActive,
-            'website'          => $data->website,
-            'meta_title'       => $data->metaTitle,
+            'name' => $data->name,
+            'slug' => $data->slug,
+            'logo' => $data->logo,
+            'description' => $data->description,
+            'is_active' => $data->isActive,
+            'website' => $data->website,
+            'meta_title' => $data->metaTitle,
             'meta_description' => $data->metaDescription,
         ]);
 

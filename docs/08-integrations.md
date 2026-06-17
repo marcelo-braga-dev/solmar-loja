@@ -108,6 +108,88 @@ private function mapProduct(array $item): ?ErpProductData
 
 ---
 
+## 1b. AppSolar (Distribuidor Edeltec) — Sincronização de Catálogo
+
+Integração dedicada com a API REST do **AppSolar** (CRM/ERP do distribuidor Edeltec),
+que fornece o catálogo de kits fotovoltaicos já com preço de venda calculado. Diferente
+do `HttpErpClient` genérico (seção 1), o schema desta API é fixo e documentado pelo
+próprio AppSolar — por isso tem cliente, DTO e serviço de sync próprios.
+
+### Princípios
+
+- **Completa:** todo campo retornado pela API é persistido — nada é descartado.
+- **Idempotente / Auditável / Não destrutiva / Resiliente:** mesmos princípios da seção 1.
+- **Imagens:** usa a URL da AppSolar diretamente como `ProductImage.path` (sem download
+  para storage local) — `ProductImage::url()` já trata URLs `http(s)` como externas.
+
+### Arquivos
+
+| Arquivo | Descrição |
+|---|---|
+| `Integrations/Contracts/AppSolarClientInterface.php` | Contrato: `fetchProducts(?updatedSince)`, `findBySku()` |
+| `Integrations/Data/AppSolarProductData.php` | DTO espelhando 1:1 todos os campos da API (`fromApiArray()`) |
+| `Integrations/Services/AppSolarHttpClient.php` | Cliente HTTP: Bearer token, paginação via `links.next`, retry/backoff em 429/5xx, throttle entre páginas |
+| `Integrations/Services/AppSolarProductSyncService.php` | Orquestra o sync: upsert de `Product` + `SolarKitSpecification` + `Brand` + imagens, arquivamento de descontinuados |
+| `Integrations/Support/HtmlSanitizer.php` | Sanitiza o HTML de `componentes` (whitelist de tags de tabela, remove atributos) |
+| `Catalog/Models/SolarKitSpecification.php` | Ficha técnica/comercial completa do kit (1:1 com `Product`) |
+| `Jobs/SyncAppSolarProductsJob.php` | Job na fila `sync`; agendado completo (`02:00` diário) e incremental (`hourly()`) |
+
+### Configuração (.env)
+
+```dotenv
+APPSOLAR_API_BASE_URL=https://crm.suaempresa.com.br/api/v1/loja
+APPSOLAR_API_TOKEN=token_fornecido_pelo_time_appsolar
+APPSOLAR_API_TIMEOUT=30
+APPSOLAR_SYNC_ENABLED=true
+```
+
+### Endpoints consumidos
+
+```
+GET {APPSOLAR_API_BASE_URL}/produtos                  → lista paginada
+  Query params: per_page (máx. 200), page, atualizados_desde (ISO 8601 — delta sync)
+GET {APPSOLAR_API_BASE_URL}/produtos/{sku}             → produto único (404 se inexistente/inativo)
+```
+
+Autenticação: `Authorization: Bearer {APPSOLAR_API_TOKEN}` (token estático, sem expiração).
+Rate limit do AppSolar: 60 req/min — o cliente espaça as páginas e faz retry com backoff
+exponencial em `429`/`5xx`; `401` e `404`/`422` falham imediatamente (sem retry).
+
+### Mapeamento de campos (API → banco)
+
+| Campo da API | Destino | Observação |
+|---|---|---|
+| `sku` | `products.sku`, `products.external_id`, `solar_kit_specifications.supplier_sku` | chave de upsert |
+| `nome` | `products.name` | |
+| `preco_venda` | `products.price_cents`, `solar_kit_specifications.supplier_sale_price_cents` | reais × 100 |
+| `preco_custo` | `products.cost_cents`, `solar_kit_specifications.supplier_cost_price_cents` | reais × 100, nunca exposto na loja |
+| `disponivel` | `solar_kit_specifications.supplier_available` | API só retorna ativos; mantido para o futuro |
+| `potencia_kit_kwp`, `tensao`, `estrutura`, `fornecedor` | `solar_kit_specifications.*` | |
+| `marca_inversor(_logo/_imagem)`, `potencia_inversor` | `solar_kit_specifications.inverter_*`, `Brand` (find-or-create), `ProductImage` (`tag=inverter`) | |
+| `marca_painel(_logo/_imagem)`, `potencia_painel` | `solar_kit_specifications.panel_*`, `Brand` (find-or-create, prioridade sobre inversor como marca primária do produto), `ProductImage` (`tag=panel`) | |
+| `componentes` | `solar_kit_specifications.components_html` | sanitizado via `HtmlSanitizer::sanitizeTable()` |
+| `observacoes` | `solar_kit_specifications.supplier_notes`, `products.description` (apenas na criação) | |
+| `atualizado_em` | `solar_kit_specifications.supplier_updated_at` | usado como base para `atualizados_desde` na próxima sync incremental |
+
+### Estratégia de sincronização
+
+- **Completa (`appsolar:sync --full`):** percorre todo o catálogo (`per_page=200`, segue
+  `links.next`), agendada diariamente às `02:00`. Ao final, arquiva (`status = archived`)
+  produtos com `solar_kit_specifications` cujo `synced_at` ficou anterior ao início da
+  rodada — ou seja, saíram do feed do distribuidor.
+- **Incremental (`appsolar:sync`):** usa `atualizados_desde` com a data de início da
+  última sync bem-sucedida (`success`/`partial`), agendada de hora em hora.
+- Produtos novos sempre entram como `draft` — publicação no catálogo é decisão manual do
+  admin/manager.
+
+### Painel Admin
+
+Aba **"AppSolar (Edeltec)"** em `/admin/integration`: status de configuração, KPIs (kits
+sincronizados, total de syncs, taxa de sucesso, última execução), histórico filtrado por
+`source = appsolar` e botões para disparar sincronização manual (completa ou incremental).
+
+---
+
 ## 2. Gateway de Pagamento
 
 ### Interface

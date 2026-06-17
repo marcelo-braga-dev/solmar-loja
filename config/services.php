@@ -42,23 +42,31 @@ return [
 
     // Asaas (https://www.asaas.com/)
     'asaas' => [
-        'api_key'     => env('ASAAS_API_KEY'),
+        'api_key' => env('ASAAS_API_KEY'),
         'environment' => env('ASAAS_ENVIRONMENT', 'sandbox'),
     ],
 
     // ERP / Distribuidor
     'erp' => [
         'base_url' => env('ERP_BASE_URL'),
-        'api_key'  => env('ERP_API_KEY'),
-        'timeout'  => env('ERP_TIMEOUT', 30),
-        'enabled'  => env('ERP_SYNC_ENABLED', false),
+        'api_key' => env('ERP_API_KEY'),
+        'timeout' => env('ERP_TIMEOUT', 30),
+        'enabled' => env('ERP_SYNC_ENABLED', false),
+    ],
+
+    // AppSolar — distribuidor Edeltec (catálogo de kits fotovoltaicos)
+    'appsolar' => [
+        'base_url' => env('APPSOLAR_API_BASE_URL'),
+        'token' => env('APPSOLAR_API_TOKEN'),
+        'timeout' => env('APPSOLAR_API_TIMEOUT', 30),
+        'enabled' => env('APPSOLAR_SYNC_ENABLED', false),
     ],
 
     // Google OAuth (Socialite)
     'google' => [
-        'client_id'     => env('GOOGLE_CLIENT_ID'),
+        'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect'      => env('GOOGLE_REDIRECT_URL', '/auth/google/callback'),
+        'redirect' => env('GOOGLE_REDIRECT_URL', '/auth/google/callback'),
     ],
 
 ];

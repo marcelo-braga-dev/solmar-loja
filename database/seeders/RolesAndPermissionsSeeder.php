@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Domains\Customers\Models\Customer;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 final class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // Permissões granulares
         $permissions = [
@@ -27,6 +29,7 @@ final class RolesAndPermissionsSeeder extends Seeder
             'financial.view', 'financial.export',
             'reports.view', 'reports.export',
             'settings.view', 'settings.update',
+            'integrations.view', 'integrations.sync',
         ];
 
         foreach ($permissions as $permission) {
@@ -44,6 +47,7 @@ final class RolesAndPermissionsSeeder extends Seeder
             'brands.view', 'brands.create', 'brands.update',
             'orders.view', 'orders.update',
             'customers.view', 'inventory.view', 'reports.view',
+            'integrations.view', 'integrations.sync',
         ]);
 
         $finance = Role::firstOrCreate(['name' => 'finance', 'guard_name' => 'web']);
@@ -61,8 +65,8 @@ final class RolesAndPermissionsSeeder extends Seeder
         $adminUser = User::firstOrCreate(
             ['email' => 'admin@solarhub.com.br'],
             [
-                'name'              => 'Administrador',
-                'password'          => Hash::make('password'),
+                'name' => 'Administrador',
+                'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
         );
@@ -72,12 +76,12 @@ final class RolesAndPermissionsSeeder extends Seeder
         $testCustomer = User::firstOrCreate(
             ['email' => 'cliente@solarhub.com.br'],
             [
-                'name'              => 'Cliente Teste',
-                'password'          => Hash::make('password'),
+                'name' => 'Cliente Teste',
+                'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]
         );
         $testCustomer->assignRole('customer');
-        \App\Domains\Customers\Models\Customer::firstOrCreate(['user_id' => $testCustomer->id]);
+        Customer::firstOrCreate(['user_id' => $testCustomer->id]);
     }
 }

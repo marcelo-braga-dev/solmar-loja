@@ -21,6 +21,13 @@ interface BrandRepositoryInterface
 
     public function findById(int $id): ?Brand;
 
+    /**
+     * Busca uma marca pelo nome (via slug) ou cria uma nova — usado por sincronizações
+     * externas que recebem apenas o nome da marca (ex.: marca do inversor/painel).
+     * Se a marca já existir sem logo e `$logoUrl` for informado, o logo é preenchido.
+     */
+    public function findOrCreateByName(string $name, ?string $logoUrl = null): Brand;
+
     public function create(BrandData $data): Brand;
 
     public function update(Brand $brand, BrandData $data): Brand;

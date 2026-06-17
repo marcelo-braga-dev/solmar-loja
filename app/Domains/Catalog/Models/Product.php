@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Domains\Catalog\Models;
 
 use App\Domains\Catalog\Enums\ProductStatus;
-use App\Domains\Catalog\Models\PriceList;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -32,23 +33,23 @@ final class Product extends Model
     ];
 
     protected $casts = [
-        'status'         => ProductStatus::class,
+        'status' => ProductStatus::class,
         'specifications' => 'array',
-        'featured'       => 'boolean',
-        'published_at'   => 'datetime',
-        'synced_at'      => 'datetime',
-        'price_cents'    => 'integer',
+        'featured' => 'boolean',
+        'published_at' => 'datetime',
+        'synced_at' => 'datetime',
+        'price_cents' => 'integer',
         'compare_at_price_cents' => 'integer',
-        'cost_cents'     => 'integer',
-        'weight_grams'   => 'integer',
-        'length_mm'      => 'integer',
-        'width_mm'       => 'integer',
-        'height_mm'      => 'integer',
+        'cost_cents' => 'integer',
+        'weight_grams' => 'integer',
+        'length_mm' => 'integer',
+        'width_mm' => 'integer',
+        'height_mm' => 'integer',
     ];
 
     protected static function booted(): void
     {
-        static::creating(function (self $product): void {
+        self::creating(function (self $product): void {
             $product->uuid ??= Str::uuid()->toString();
         });
     }
@@ -80,6 +81,12 @@ final class Product extends Model
         return $this->hasMany(ProductVariant::class);
     }
 
+    /** Ficha técnica/comercial completa, presente apenas em kits sincronizados via AppSolar. */
+    public function solarKitSpecification(): HasOne
+    {
+        return $this->hasOne(SolarKitSpecification::class);
+    }
+
     /** @return BelongsToMany<AttributeValue, $this> */
     public function attributeValues(): BelongsToMany
     {
@@ -98,7 +105,7 @@ final class Product extends Model
     }
 
     /** Produtos frequentemente comprados juntos — baseado em co-ocorrência real em pedidos */
-    public function frequentlyBoughtWith(int $limit = 4): \Illuminate\Database\Eloquent\Collection
+    public function frequentlyBoughtWith(int $limit = 4): Collection
     {
         // Primeiro tenta relações manuais cadastradas pelo admin
         $manual = $this->relatedProducts()
@@ -176,8 +183,8 @@ final class Product extends Model
         );
     }
 
-    /** @return \Illuminate\Database\Eloquent\Relations\HasMany<ProductPrice, $this> */
-    public function prices(): \Illuminate\Database\Eloquent\Relations\HasMany
+    /** @return HasMany<ProductPrice, $this> */
+    public function prices(): HasMany
     {
         return $this->hasMany(ProductPrice::class);
     }
@@ -206,18 +213,18 @@ final class Product extends Model
     public function toSearchableArray(): array
     {
         return [
-            'id'                => $this->id,
-            'uuid'              => $this->uuid,
-            'name'              => $this->name,
-            'slug'              => $this->slug,
-            'sku'               => $this->sku,
+            'id' => $this->id,
+            'uuid' => $this->uuid,
+            'name' => $this->name,
+            'slug' => $this->slug,
+            'sku' => $this->sku,
             'short_description' => $this->short_description,
-            'price_cents'       => $this->price_cents,
-            'brand_name'        => $this->brand?->name,
-            'categories'        => $this->categories->pluck('name')->toArray(),
-            'status'            => $this->status->value,
-            'featured'          => $this->featured,
-            'published_at'      => $this->published_at?->timestamp,
+            'price_cents' => $this->price_cents,
+            'brand_name' => $this->brand?->name,
+            'categories' => $this->categories->pluck('name')->toArray(),
+            'status' => $this->status->value,
+            'featured' => $this->featured,
+            'published_at' => $this->published_at?->timestamp,
         ];
     }
 
