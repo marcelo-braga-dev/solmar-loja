@@ -12,6 +12,8 @@ import Co2Icon from '@mui/icons-material/Co2';
 import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import StarIcon from '@mui/icons-material/Star';
+import BuildIcon from '@mui/icons-material/Build';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
 import ProductCard from '@/Components/storefront/ProductCard';
 import type { PageProps } from '@inertiajs/react';
@@ -350,6 +352,108 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                 </Box>
             )}
 
+            {/* ── KIT BUILDER PROMO ────────────────────────────────────────── */}
+            <Box sx={{
+                background: 'linear-gradient(135deg, #0D1B3E 0%, #0B2454 60%, #0F172A 100%)',
+                py: { xs: 7, md: 9 },
+                position: 'relative', overflow: 'hidden',
+            }}>
+                {/* Padrão decorativo */}
+                <Box sx={{
+                    position: 'absolute', inset: 0, opacity: 0.05,
+                    backgroundImage: 'radial-gradient(circle at 80% 50%, rgba(255,179,0,0.9) 0%, transparent 50%)',
+                }} />
+                <Container maxWidth="lg" sx={{ position: 'relative' }}>
+                    <Grid container spacing={5} sx={{ alignItems: 'center' }}>
+                        <Grid size={{ xs: 12, md: 7 }}>
+                            <Chip
+                                label="🔧 Novidade"
+                                sx={{ bgcolor: 'rgba(255,179,0,0.18)', color: '#FFD54F', fontWeight: 700, mb: 2.5, border: '1px solid rgba(255,179,0,0.25)' }}
+                            />
+                            <Typography variant="h3" sx={{
+                                color: 'white', fontWeight: 900, lineHeight: 1.1,
+                                fontSize: { xs: '2rem', md: '2.6rem' },
+                                mb: 2, letterSpacing: '-0.5px',
+                            }}>
+                                Monte seu sistema solar{' '}
+                                <Box component="span" sx={{
+                                    background: 'linear-gradient(90deg,#FFB300,#FFD54F)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}>
+                                    do zero
+                                </Box>
+                            </Typography>
+                            <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 16, mb: 4, lineHeight: 1.7, maxWidth: 480 }}>
+                                Nosso wizard interativo escolhe painel, inversor, estrutura e cabos compatíveis para o seu consumo. Em 4 passos, seu kit completo no carrinho.
+                            </Typography>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                                <Button
+                                    component={Link}
+                                    href="/monte-seu-kit"
+                                    variant="contained"
+                                    size="large"
+                                    startIcon={<BuildIcon />}
+                                    sx={{
+                                        bgcolor: '#FFB300', color: '#1A1A1A', fontWeight: 800,
+                                        px: 4, py: 1.6, fontSize: 16, borderRadius: 2,
+                                        boxShadow: '0 8px 24px rgba(255,179,0,0.35)',
+                                        '&:hover': { bgcolor: '#e6a200', transform: 'translateY(-1px)' },
+                                        transition: 'all 0.2s',
+                                    }}
+                                >
+                                    Montar meu Kit
+                                </Button>
+                                <Button
+                                    component={Link}
+                                    href="/simulador"
+                                    variant="outlined"
+                                    size="large"
+                                    startIcon={<BoltIcon />}
+                                    sx={{
+                                        borderColor: 'rgba(255,255,255,0.35)', color: 'white', fontWeight: 600,
+                                        px: 4, py: 1.6, fontSize: 16, borderRadius: 2,
+                                        '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', borderColor: 'white' },
+                                    }}
+                                >
+                                    Simular primeiro
+                                </Button>
+                            </Stack>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: 5 }} sx={{ display: { xs: 'none', md: 'block' } }}>
+                            <Stack spacing={1.5}>
+                                {[
+                                    { step: '01', title: 'Escolha o Painel Solar', desc: 'Potência ideal para seu telhado' },
+                                    { step: '02', title: 'Selecione o Inversor', desc: 'Compatível com os painéis escolhidos' },
+                                    { step: '03', title: 'Estrutura de Fixação', desc: 'Telha cerâmica, metálica ou laje' },
+                                    { step: '04', title: 'Cabos e Conectores', desc: 'Kit completo adicionado ao carrinho' },
+                                ].map((item) => (
+                                    <Box
+                                        key={item.step}
+                                        sx={{
+                                            display: 'flex', alignItems: 'center', gap: 2,
+                                            bgcolor: 'rgba(255,255,255,0.06)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: 2, px: 2.5, py: 1.5,
+                                            backdropFilter: 'blur(8px)',
+                                        }}
+                                    >
+                                        <Typography sx={{ color: '#FFB300', fontWeight: 900, fontSize: 13, minWidth: 28, opacity: 0.7 }}>
+                                            {item.step}
+                                        </Typography>
+                                        <Box>
+                                            <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>{item.title}</Typography>
+                                            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{item.desc}</Typography>
+                                        </Box>
+                                        <CheckCircleIcon sx={{ ml: 'auto', color: '#FFB300', fontSize: 18, opacity: 0.6 }} />
+                                    </Box>
+                                ))}
+                            </Stack>
+                        </Grid>
+                    </Grid>
+                </Container>
+            </Box>
+
             {/* ── OFERTAS ───────────────────────────────────────────────────── */}
             {onSaleProducts.length > 0 && (
                 <Box sx={{ py: 8, bgcolor: 'white' }}>
@@ -366,11 +470,11 @@ export default function Home({ featuredProducts, onSaleProducts, mainCategories,
                             </Box>
                             <Button
                                 component={Link}
-                                href="/categorias/energia-solar"
+                                href="/busca?on_sale=1"
                                 endIcon={<ArrowForwardIcon />}
                                 sx={{ mt: { xs: 2, sm: 0 }, fontWeight: 600 }}
                             >
-                                Ver todas
+                                Ver todas as ofertas
                             </Button>
                         </Stack>
                         <Grid container spacing={3}>

@@ -7,6 +7,9 @@ import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import BuildIcon from '@mui/icons-material/Build';
+import BoltIcon from '@mui/icons-material/Bolt';
+import PixIcon from '@mui/icons-material/Pix';
 import { useState, type ElementType } from 'react';
 import { useForm } from '@inertiajs/react';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
@@ -62,15 +65,66 @@ export default function Cart({ cart }: Props) {
         return (
             <StorefrontLayout>
                 <Head title="Carrinho" />
-                <Container maxWidth="md" sx={{ py: 8, textAlign: 'center' }}>
-                    <ShoppingCartIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
-                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>Seu carrinho está vazio</Typography>
-                    <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>
-                        Explore nosso catálogo e adicione produtos ao carrinho.
+                <Container maxWidth="md" sx={{ py: 8 }}>
+                    <Box sx={{ textAlign: 'center', mb: 6 }}>
+                        <ShoppingCartIcon sx={{ fontSize: 72, color: 'text.disabled', mb: 2 }} />
+                        <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>Seu carrinho está vazio</Typography>
+                        <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4 }}>
+                            Explore nosso catálogo e adicione produtos ao carrinho.
+                        </Typography>
+                        <Button component={Link as ElementType} href="/categorias/energia-solar" variant="contained" size="large" endIcon={<ArrowForwardIcon />}>
+                            Ver Catálogo
+                        </Button>
+                    </Box>
+
+                    {/* Sugestões rápidas */}
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, textAlign: 'center' }}>
+                        Por onde começar?
                     </Typography>
-                    <Button component={Link as ElementType} href="/categorias/energia-solar" variant="contained" size="large">
-                        Ver Produtos
-                    </Button>
+                    <Grid container spacing={2}>
+                        {[
+                            {
+                                title: 'Kits Fotovoltaicos',
+                                desc: 'Solução completa: painel + inversor + estrutura',
+                                icon: <BoltIcon sx={{ fontSize: 32, color: '#FFB300' }} />,
+                                href: '/categorias/kits-fotovoltaicos',
+                                bg: 'linear-gradient(135deg,#0D1B3E,#0B3D91)',
+                            },
+                            {
+                                title: 'Monte seu Kit',
+                                desc: 'Wizard interativo com 4 passos guiados',
+                                icon: <BuildIcon sx={{ fontSize: 32, color: '#FFB300' }} />,
+                                href: '/monte-seu-kit',
+                                bg: 'linear-gradient(135deg,#1a0a3e,#3d0b91)',
+                            },
+                            {
+                                title: 'Simular Economia',
+                                desc: 'Descubra quanto vai economizar na conta de luz',
+                                icon: <BoltIcon sx={{ fontSize: 32, color: '#FFB300' }} />,
+                                href: '/simulador',
+                                bg: 'linear-gradient(135deg,#0a3e1b,#0b6e3d)',
+                            },
+                        ].map((item) => (
+                            <Grid key={item.href} size={{ xs: 12, sm: 4 }}>
+                                <Paper
+                                    component={Link as ElementType}
+                                    href={item.href}
+                                    elevation={0}
+                                    sx={{
+                                        display: 'block', textDecoration: 'none',
+                                        background: item.bg, color: 'white',
+                                        p: 3, borderRadius: 3, textAlign: 'center',
+                                        transition: 'all 0.2s',
+                                        '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 12px 32px rgba(0,0,0,0.2)' },
+                                    }}
+                                >
+                                    <Box sx={{ mb: 1.5 }}>{item.icon}</Box>
+                                    <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5 }}>{item.title}</Typography>
+                                    <Typography sx={{ fontSize: 12, opacity: 0.7, lineHeight: 1.4 }}>{item.desc}</Typography>
+                                </Paper>
+                            </Grid>
+                        ))}
+                    </Grid>
                 </Container>
             </StorefrontLayout>
         );
@@ -215,6 +269,23 @@ export default function Cart({ cart }: Props) {
                                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                     ou em até 12x sem juros no cartão
                                 </Typography>
+                                {/* Destaque Pix */}
+                                <Box sx={{
+                                    display: 'flex', alignItems: 'center', gap: 1,
+                                    bgcolor: alpha('#16A34A', 0.07),
+                                    border: '1px solid', borderColor: alpha('#16A34A', 0.2),
+                                    borderRadius: 1.5, px: 1.5, py: 1,
+                                }}>
+                                    <PixIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                                    <Box>
+                                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: 'success.dark', lineHeight: 1.2 }}>
+                                            Pague com Pix e economize 5%
+                                        </Typography>
+                                        <Typography sx={{ fontSize: 11, color: 'success.main' }}>
+                                            {formatBRL(Math.round(cart.total_cents * 0.95))} no Pix
+                                        </Typography>
+                                    </Box>
+                                </Box>
                             </Stack>
 
                             <Button

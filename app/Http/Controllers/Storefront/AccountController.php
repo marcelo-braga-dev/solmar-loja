@@ -4,19 +4,28 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Storefront;
 
+use App\Domains\Catalog\Models\Product;
 use App\Domains\Customers\Models\Address;
+use App\Domains\Marketing\Services\LoyaltyService;
 use App\Domains\Orders\Models\Order;
 use App\Domains\Orders\Models\OrderItem;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 final class AccountController extends Controller
 {
+    public function __construct(
+        private readonly LoyaltyService $loyaltyService,
+    ) {}
+
     public function dashboard(): Response
     {
         /** @var \App\Models\User $user */
@@ -195,18 +204,20 @@ final class AccountController extends Controller
 
         $favorites = $customer
             ? $customer->favoriteProducts()->with(['brand', 'images'])->published()->get()->map(fn ($p) => [
-                'id'          => $p->id,
-                'name'        => $p->name,
-                'slug'        => $p->slug,
-                'price_cents' => $p->price_cents,
+                'id'           => $p->id,
+                'name'         => $p->name,
+                'slug'         => $p->slug,
+                'price_cents'  => $p->price_cents,
                 'has_discount' => $p->hasDiscount(),
-                'brand_name'  => $p->brand?->name,
-                'cover_image' => $p->coverImage()?->url(),
+                'brand_name'   => $p->brand?->name,
+                'cover_image'  => $p->coverImage()?->url(),
             ])
             : collect();
 
         return Inertia::render('Storefront/Account/Favorites', [
-            'favorites' => $favorites,
+            'favorites'       => $favorites,
+            'wishlist_public' => $customer?->wishlist_public ?? false,
+            'wishlist_token'  => $customer?->wishlist_token,
         ]);
     }
 
@@ -287,6 +298,134 @@ final class AccountController extends Controller
                     'paid_at'      => $p->paid_at?->format('d/m/Y H:i'),
                 ]),
             ],
+        ]);
+    }
+
+    // ─── Wishlist Sharing (#12) ───────────────────────────────────────────────
+
+    public function toggleWishlistSharing(Request $request): RedirectResponse
+    {
+        /** @var \App\Models\User $user */
+        $user     = Auth::user();
+        $customer = $user->customer()->firstOrCreate(['user_id' => $user->id]);
+
+        $isPublic = ! $customer->wishlist_public;
+
+        if ($isPublic && empty($customer->wishlist_token)) {
+            $customer->wishlist_token = Str::uuid()->toString();
+        }
+
+        $customer->wishlist_public = $isPublic;
+        $customer->save();
+
+        $msg = $isPublic
+            ? 'Lista de favoritos compartilhada! Copie o link para enviar.'
+            : 'Compartilhamento desativado.';
+
+        return back()->with('success', $msg);
+    }
+
+    public function sharedWishlist(string $token): Response
+    {
+        $customer = \App\Domains\Customers\Models\Customer::where('wishlist_token', $token)
+            ->where('wishlist_public', true)
+            ->firstOrFail();
+
+        $favorites = $customer->favoriteProducts()
+            ->with(['brand', 'images'])
+            ->published()
+            ->get()
+            ->map(fn ($p) => [
+                'id'          => $p->id,
+                'name'        => $p->name,
+                'slug'        => $p->slug,
+                'price_cents' => $p->price_cents,
+                'has_discount'=> $p->hasDiscount(),
+                'brand_name'  => $p->brand?->name,
+                'cover_image' => $p->coverImage()?->url(),
+            ]);
+
+        return Inertia::render('Storefront/Account/SharedWishlist', [
+            'owner_name' => $customer->user?->name ?? 'Um cliente',
+            'favorites'  => $favorites,
+        ]);
+    }
+
+    // ─── Comparison Sync (#18) ───────────────────────────────────────────────
+
+    public function syncComparisons(Request $request): JsonResponse
+    {
+        $request->validate([
+            'product_ids' => ['required', 'array', 'max:4'],
+            'product_ids.*' => ['integer', 'exists:products,id'],
+        ]);
+
+        /** @var \App\Models\User $user */
+        $user       = Auth::user();
+        $productIds = $request->input('product_ids', []);
+
+        DB::table('product_comparisons')->where('user_id', $user->id)->delete();
+
+        foreach ($productIds as $productId) {
+            DB::table('product_comparisons')->insertOrIgnore([
+                'user_id'    => $user->id,
+                'product_id' => $productId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        return response()->json(['synced' => count($productIds)]);
+    }
+
+    public function getComparisons(): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $products = Product::query()
+            ->whereIn('id', DB::table('product_comparisons')->where('user_id', $user->id)->pluck('product_id'))
+            ->with(['brand', 'images'])
+            ->published()
+            ->get()
+            ->map(fn (Product $p) => [
+                'id'             => $p->id,
+                'name'           => $p->name,
+                'slug'           => $p->slug,
+                'price_cents'    => $p->price_cents,
+                'cover_image'    => $p->coverImage()?->url(),
+                'brand_name'     => $p->brand?->name,
+                'specifications' => $p->specifications,
+            ]);
+
+        return response()->json(['products' => $products]);
+    }
+
+    // ─── Loyalty Points (#15) ─────────────────────────────────────────────────
+
+    public function loyaltyPoints(): Response
+    {
+        /** @var \App\Models\User $user */
+        $user    = Auth::user();
+        $balance = $this->loyaltyService->getOrCreateBalance($user);
+
+        $transactions = \App\Domains\Marketing\Models\LoyaltyTransaction::where('user_id', $user->id)
+            ->latest()
+            ->limit(20)
+            ->get()
+            ->map(fn ($t) => [
+                'type'        => $t->type,
+                'points'      => $t->points,
+                'description' => $t->description,
+                'created_at'  => $t->created_at->format('d/m/Y H:i'),
+                'expires_at'  => $t->expires_at?->format('d/m/Y'),
+            ]);
+
+        return Inertia::render('Storefront/Account/LoyaltyPoints', [
+            'balance'      => $balance->points,
+            'lifetime'     => $balance->lifetime_points,
+            'value_cents'  => $balance->valueInCents(),
+            'transactions' => $transactions,
         ]);
     }
 }

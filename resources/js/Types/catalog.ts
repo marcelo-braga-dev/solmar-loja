@@ -61,6 +61,8 @@ export interface Product {
     categories?: Category[];
     category_ids?: number[];
     featured: boolean;
+    is_favorite?: boolean;
+    stock_quantity?: number;
     has_discount: boolean;
     discount_percent: number;
     weight_grams?: number;

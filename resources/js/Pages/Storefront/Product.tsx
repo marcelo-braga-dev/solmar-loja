@@ -2,8 +2,10 @@ import { Head, router, usePage } from '@inertiajs/react';
 import {
     Box, Container, Grid, Typography, Button, Chip, Divider,
     Paper, Stack, Tab, Tabs, Avatar, IconButton, Snackbar, Alert,
-    TextField,
+    TextField, LinearProgress,
 } from '@mui/material';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import ErrorOutlineIcon from '@mui/icons-material/Error';
 import ReviewSection from '@/Components/storefront/ReviewSection';
 import RecentlyViewed from '@/Components/storefront/RecentlyViewed';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
@@ -53,7 +55,7 @@ export default function ProductPage({ product, relatedProducts, frequentlyBought
     }, []);
 
     // Alerta de estoque
-    const [alertEmail, setAlertEmail]   = useState('');
+    const [alertEmail, setAlertEmail]   = useState(auth.user?.email ?? '');
     const [alertSending, setAlertSending] = useState(false);
     const [alertDone, setAlertDone]     = useState(false);
 
@@ -77,7 +79,7 @@ export default function ProductPage({ product, relatedProducts, frequentlyBought
     const [quantity, setQuantity]         = useState(1);
     const [selectedVariant, setSelectedVariant] = useState<number | null>(null);
     const [addingCart, setAddingCart]     = useState(false);
-    const [isFavorite, setIsFavorite]     = useState(false);
+    const [isFavorite, setIsFavorite]     = useState(product.is_favorite ?? false);
     const [quoteOpen, setQuoteOpen]       = useState(false);
     const [snackbar, setSnackbar]         = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false, message: '', severity: 'success',
@@ -193,6 +195,75 @@ export default function ProductPage({ product, relatedProducts, frequentlyBought
                                 <Typography variant="body1" sx={{ color: 'text.secondary' }}>
                                     {product.short_description}
                                 </Typography>
+                            )}
+
+                            {/* Disponibilidade */}
+                            {product.stock_quantity !== undefined && (
+                                <Box>
+                                    {product.stock_quantity === 0 ? (
+                                        <Paper elevation={0} sx={{ bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.200', borderRadius: 2, p: 2 }}>
+                                            <Stack spacing={1.5}>
+                                                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                                                    <ErrorOutlineIcon sx={{ color: 'warning.main', fontSize: 20 }} />
+                                                    <Typography variant="body2" sx={{ fontWeight: 700, color: 'warning.dark' }}>
+                                                        Produto sem estoque no momento
+                                                    </Typography>
+                                                </Stack>
+                                                {alertDone ? (
+                                                    <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
+                                                        ✓ Você será avisado por e-mail quando o produto retornar!
+                                                    </Typography>
+                                                ) : (
+                                                    <Stack direction="row" spacing={1}>
+                                                        <TextField
+                                                            size="small"
+                                                            type="email"
+                                                            placeholder="Seu e-mail para aviso"
+                                                            value={alertEmail}
+                                                            onChange={(e) => setAlertEmail(e.target.value)}
+                                                            sx={{ flex: 1 }}
+                                                        />
+                                                        <Button
+                                                            variant="contained"
+                                                            color="warning"
+                                                            size="small"
+                                                            startIcon={<NotificationsActiveIcon />}
+                                                            onClick={sendStockAlert}
+                                                            disabled={alertSending}
+                                                            sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}
+                                                        >
+                                                            {alertSending ? 'Enviando...' : 'Avise-me'}
+                                                        </Button>
+                                                    </Stack>
+                                                )}
+                                            </Stack>
+                                        </Paper>
+                                    ) : product.stock_quantity <= 5 ? (
+                                        <Stack spacing={0.5}>
+                                            <Chip
+                                                icon={<InventoryIcon />}
+                                                label={`Últimas ${product.stock_quantity} unidades em estoque!`}
+                                                color="warning"
+                                                size="small"
+                                                sx={{ fontWeight: 700, fontSize: 12 }}
+                                            />
+                                            <LinearProgress
+                                                variant="determinate"
+                                                value={(product.stock_quantity / 10) * 100}
+                                                color="warning"
+                                                sx={{ height: 4, borderRadius: 2 }}
+                                            />
+                                        </Stack>
+                                    ) : (
+                                        <Chip
+                                            icon={<InventoryIcon />}
+                                            label="Em estoque — pronto para envio"
+                                            color="success"
+                                            size="small"
+                                            sx={{ fontWeight: 600, fontSize: 12 }}
+                                        />
+                                    )}
+                                </Box>
                             )}
 
                             {/* Social Proof */}
@@ -432,7 +503,7 @@ export default function ProductPage({ product, relatedProducts, frequentlyBought
                                 <Box
                                     component="img"
                                     src={images[0].url}
-                                    sx={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 1, bgcolor: '#F8F9FA', p: 0.5, flexShrink: 0, display: { xs: 'none', sm: 'block' } }}
+                                    sx={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 1, bgcolor: '#F8F9FA', flexShrink: 0, display: { xs: 'none', sm: 'block' } }}
                                 />
                             )}
                             {/* Nome e preço */}

@@ -24,17 +24,35 @@ final class SolarSimulatorService
         'SP' => 5.2, 'TO' => 5.6,
     ];
 
-    private const PANEL_EFFICIENCY  = 0.20; // eficiência do painel (20%)
-    private const SYSTEM_EFFICIENCY = 0.78; // perdas do sistema
-    private const PANEL_POWER_W     = 550;  // potência padrão de um painel (W)
-    private const PANEL_AREA_M2     = 2.7;  // área de um painel 550W (m²)
-    private const KWH_TARIFF        = 0.88; // tarifa média kWh (R$)
+    private const PANEL_EFFICIENCY   = 0.20; // eficiência do painel (20%)
+    private const SYSTEM_EFFICIENCY  = 0.78; // perdas do sistema
+    private const PANEL_POWER_W      = 550;  // potência padrão de um painel (W)
+    private const PANEL_AREA_M2      = 2.7;  // área de um painel 550W (m²)
+    private const PANEL_DEGRADATION  = 0.005; // degradação anual do painel (0,5%/ano — NREL)
+    private const SYSTEM_LIFETIME_YR = 25;
+
+    /**
+     * Tarifa residencial média por estado (R$/kWh) — ANEEL 2024.
+     * Inclui tributos médios (ICMS, PIS/COFINS, taxa de iluminação).
+     *
+     * @var array<string, float>
+     */
+    private const TARIFF_BY_STATE = [
+        'AC' => 0.78, 'AL' => 0.90, 'AM' => 0.96, 'AP' => 0.72, 'BA' => 0.92,
+        'CE' => 0.86, 'DF' => 0.79, 'ES' => 0.83, 'GO' => 0.87, 'MA' => 0.82,
+        'MG' => 0.82, 'MS' => 0.88, 'MT' => 0.89, 'PA' => 0.73, 'PB' => 0.89,
+        'PE' => 0.88, 'PI' => 0.83, 'PR' => 0.78, 'RJ' => 1.08, 'RN' => 0.91,
+        'RO' => 0.74, 'RR' => 0.68, 'RS' => 0.80, 'SC' => 0.80, 'SE' => 0.88,
+        'SP' => 0.81, 'TO' => 0.82,
+    ];
 
     /** @return array<string, mixed> */
     public function calculate(float $monthlyConsumptionKwh, string $state, string $roofType = 'ceramic'): array
     {
+        $stateUpper       = strtoupper($state);
         $dailyConsumption = $monthlyConsumptionKwh / 30;
-        $irradiance       = self::IRRADIANCE[strtoupper($state)] ?? 5.0;
+        $irradiance       = self::IRRADIANCE[$stateUpper] ?? 5.0;
+        $tariff           = self::TARIFF_BY_STATE[$stateUpper] ?? 0.88;
 
         // Potência necessária do sistema (kWp)
         $systemPowerKwp = $dailyConsumption / ($irradiance * self::SYSTEM_EFFICIENCY);
@@ -42,21 +60,38 @@ final class SolarSimulatorService
         // Número de painéis
         $panelCount = (int) ceil($systemPowerKwp * 1000 / self::PANEL_POWER_W);
 
-        // Geração anual estimada (kWh)
-        $annualGenerationKwh = $systemPowerKwp * $irradiance * self::SYSTEM_EFFICIENCY * 365;
+        // Geração anual estimada no ano 1 (kWh)
+        $annualGenerationKwhYear1 = $systemPowerKwp * $irradiance * self::SYSTEM_EFFICIENCY * 365;
 
-        // Economia estimada
-        $monthlyBillEstimate    = $monthlyConsumptionKwh * self::KWH_TARIFF;
-        $monthlySavingsEstimate = ($monthlyConsumptionKwh * 0.95) * self::KWH_TARIFF; // 95% coberto
-        $annualSavings          = $monthlySavingsEstimate * 12;
+        // Economia mensal/anual no ano 1 usando tarifa local
+        $monthlyBillEstimate    = $monthlyConsumptionKwh * $tariff;
+        $monthlySavingsEstimate = ($monthlyConsumptionKwh * 0.95) * $tariff; // 95% coberto
+        $annualSavingsYear1     = $monthlySavingsEstimate * 12;
 
         // Custo estimado do sistema (R$ 3.500 por kWp instalado)
         $systemCostEstimate = (int) ($systemPowerKwp * 3500 * 100); // centavos
 
-        // Payback estimado (anos)
-        $paybackYears = $annualSavings > 0
-            ? round($systemCostEstimate / 100 / $annualSavings, 1)
-            : null;
+        // Payback com degradação real — acumula economia ano a ano até cobrir o investimento
+        $paybackYears    = null;
+        $lifetimeSavings = 0.0;
+        $accumulated     = 0.0;
+        $paybackFound    = false;
+
+        for ($yr = 1; $yr <= self::SYSTEM_LIFETIME_YR; $yr++) {
+            $degradationFactor = (1 - self::PANEL_DEGRADATION) ** ($yr - 1);
+            $yearSavings       = $annualSavingsYear1 * $degradationFactor;
+            $lifetimeSavings  += $yearSavings;
+
+            if (! $paybackFound) {
+                $accumulated += $yearSavings;
+                if ($accumulated >= ($systemCostEstimate / 100)) {
+                    // Interpolação para fração de ano
+                    $surplus = $accumulated - ($systemCostEstimate / 100);
+                    $paybackYears = round($yr - ($surplus / $yearSavings), 1);
+                    $paybackFound = true;
+                }
+            }
+        }
 
         // Área de telhado necessária
         $roofAreaM2 = round($panelCount * self::PANEL_AREA_M2, 1);
@@ -67,25 +102,29 @@ final class SolarSimulatorService
         return [
             'input' => [
                 'monthly_kwh' => $monthlyConsumptionKwh,
-                'state'       => strtoupper($state),
+                'state'       => $stateUpper,
                 'roof_type'   => $roofType,
+                'tariff'      => $tariff,
             ],
             'result' => [
                 'system_power_kwp'        => round($systemPowerKwp, 2),
                 'panel_count'             => $panelCount,
                 'panel_power_w'           => self::PANEL_POWER_W,
-                'annual_generation_kwh'   => round($annualGenerationKwh),
+                'annual_generation_kwh'   => round($annualGenerationKwhYear1),
                 'monthly_bill_estimate'   => round($monthlyBillEstimate, 2),
                 'monthly_savings_cents'   => (int) ($monthlySavingsEstimate * 100),
-                'annual_savings_cents'    => (int) ($annualSavings * 100),
+                'annual_savings_cents'    => (int) ($annualSavingsYear1 * 100),
                 'system_cost_cents'       => $systemCostEstimate,
                 'payback_years'           => $paybackYears,
                 'roof_area_m2'            => $roofAreaM2,
-                'co2_saved_kg_year'       => round($annualGenerationKwh * 0.074), // fator emissão SEEG
+                'co2_saved_kg_year'       => round($annualGenerationKwhYear1 * 0.074), // fator emissão SEEG
                 'irradiance'              => $irradiance,
+                'tariff'                  => $tariff,
+                'lifetime_savings_cents'  => (int) ($lifetimeSavings * 100),
+                'panel_degradation_pct'   => self::PANEL_DEGRADATION * 100,
             ],
             'suggested_kit' => $suggestedKit,
-            'disclaimer'    => 'Esta é uma estimativa simplificada. Solicite uma análise técnica completa para dimensionamento preciso.',
+            'disclaimer'    => 'Cálculo considera degradação real de 0,5%/ano dos painéis e tarifa da distribuidora local. Solicite uma análise técnica para dimensionamento preciso.',
         ];
     }
 

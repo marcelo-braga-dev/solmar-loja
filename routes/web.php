@@ -33,6 +33,7 @@ use App\Http\Controllers\Admin\BulkProductController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\PriceListController;
 use App\Http\Controllers\Consultant\DashboardController as ConsultantDashboard;
+use App\Http\Controllers\Consultant\ProposalController as ConsultantProposalController;
 use App\Http\Controllers\Storefront\B2bController;
 use App\Http\Controllers\Admin\QuoteAdminController;
 use App\Http\Controllers\Admin\ReturnAdminController;
@@ -96,6 +97,14 @@ Route::post('/api/simulator/calculate', [SimulatorController::class, 'calculate'
 
 Route::middleware(['auth', 'verified', 'consultant'])->prefix('consultor')->name('consultor.')->group(function (): void {
     Route::get('/', ConsultantDashboard::class)->name('dashboard');
+
+    // Propostas
+    Route::get('/propostas', [ConsultantProposalController::class, 'index'])->name('proposals.index');
+    Route::get('/propostas/criar', [ConsultantProposalController::class, 'create'])->name('proposals.create');
+    Route::post('/propostas', [ConsultantProposalController::class, 'store'])->name('proposals.store');
+    Route::get('/propostas/{uuid}', [ConsultantProposalController::class, 'show'])->name('proposals.show');
+    Route::post('/propostas/{uuid}/enviar', [ConsultantProposalController::class, 'send'])->name('proposals.send');
+    Route::delete('/propostas/{uuid}', [ConsultantProposalController::class, 'destroy'])->name('proposals.destroy');
 });
 
 // ─── Portal B2B (Integradoras / Distribuidoras) ───────────────────────────────
@@ -234,10 +243,21 @@ Route::middleware(['auth', 'verified'])->prefix('conta')->name('account.')->grou
 
     Route::get('/favoritos', [AccountController::class, 'favorites'])->name('favorites');
     Route::post('/favoritos/toggle', [AccountController::class, 'toggleFavorite'])->name('favorites.toggle');
+    Route::post('/favoritos/compartilhar', [AccountController::class, 'toggleWishlistSharing'])->name('favorites.share');
 
     Route::get('/pedidos', [AccountController::class, 'orders'])->name('orders.index');
     Route::get('/pedidos/{order:uuid}', [AccountController::class, 'orderShow'])->name('orders.show');
+
+    // Comparações sincronizadas — #18
+    Route::post('/comparacoes/sync', [AccountController::class, 'syncComparisons'])->name('comparisons.sync');
+    Route::get('/comparacoes', [AccountController::class, 'getComparisons'])->name('comparisons.get');
+
+    // Pontos de fidelidade — #15
+    Route::get('/pontos', [AccountController::class, 'loyaltyPoints'])->name('loyalty');
 });
+
+// Wishlist compartilhada — acesso público — #12
+Route::get('/wishlist/{token}', [AccountController::class, 'sharedWishlist'])->name('wishlist.shared');
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 

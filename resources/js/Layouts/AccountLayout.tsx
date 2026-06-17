@@ -7,6 +7,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import SecurityIcon from '@mui/icons-material/Security';
+import StarIcon from '@mui/icons-material/Star';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
 import type { SharedProps } from '@/Types/inertia';
 
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
     { label: 'Dashboard', icon: <DashboardIcon fontSize="small" />, href: '/conta' },
     { label: 'Meus Pedidos', icon: <ShoppingBagIcon fontSize="small" />, href: '/conta/pedidos' },
     { label: 'Favoritos', icon: <FavoriteIcon fontSize="small" />, href: '/conta/favoritos' },
+    { label: 'Meus Pontos', icon: <StarIcon fontSize="small" />, href: '/conta/pontos' },
     { label: 'Endereços', icon: <LocationOnIcon fontSize="small" />, href: '/conta/enderecos' },
     { label: 'Meus Dados', icon: <PersonIcon fontSize="small" />, href: '/conta/perfil' },
     { label: 'Segurança', icon: <SecurityIcon fontSize="small" />, href: '/conta/seguranca' },

@@ -19,6 +19,7 @@ final class Customer extends Model
     protected $fillable = [
         'user_id', 'phone', 'cpf_cnpj', 'type', 'birth_date',
         'accepts_marketing', 'newsletter_token', 'newsletter_confirmed_at', 'meta',
+        'wishlist_token', 'wishlist_public',
     ];
 
     protected $casts = [
@@ -26,6 +27,7 @@ final class Customer extends Model
         'accepts_marketing'        => 'boolean',
         'newsletter_confirmed_at'  => 'datetime',
         'meta'                     => 'array',
+        'wishlist_public'          => 'boolean',
     ];
 
     public function user(): BelongsTo

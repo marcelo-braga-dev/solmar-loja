@@ -20,7 +20,7 @@ import axios from '@/Lib/axios';
 import type { PageProps } from '@inertiajs/react';
 
 interface SimulatorResult {
-    input: { monthly_kwh: number; state: string; roof_type: string };
+    input: { monthly_kwh: number; state: string; roof_type: string; tariff: number };
     result: {
         system_power_kwp: number;
         panel_count: number;
@@ -34,6 +34,9 @@ interface SimulatorResult {
         roof_area_m2: number;
         co2_saved_kg_year: number;
         irradiance: number;
+        tariff: number;
+        lifetime_savings_cents: number;
+        panel_degradation_pct: number;
     };
     suggested_kit: { id: number; name: string; slug: string; price_cents: number } | null;
     disclaimer: string;
@@ -159,7 +162,9 @@ export default function Simulator(_props: PageProps) {
 
     const validate = () => {
         const errs: Record<string, string> = {};
-        if (!form.monthly_kwh || Number(form.monthly_kwh) < 50) errs.monthly_kwh = 'Informe o consumo (mínimo 50 kWh)';
+        const kwh = Number(form.monthly_kwh);
+        if (!form.monthly_kwh || kwh < 50) errs.monthly_kwh = 'Informe o consumo (mínimo 50 kWh)';
+        if (kwh > 50000) errs.monthly_kwh = 'Consumo máximo para simulação: 50.000 kWh/mês';
         if (!form.state) errs.state = 'Selecione seu estado';
         setErrors(errs);
         return Object.keys(errs).length === 0;
@@ -215,9 +220,9 @@ export default function Simulator(_props: PageProps) {
                                 value={form.monthly_kwh}
                                 onChange={(e) => setForm({ ...form, monthly_kwh: e.target.value })}
                                 error={!!errors.monthly_kwh}
-                                helperText={errors.monthly_kwh ?? 'Geralmente entre 100 e 800 kWh para residências'}
+                                helperText={errors.monthly_kwh ?? 'Entre 50 e 50.000 kWh/mês — consulte sua fatura de energia'}
                                 fullWidth
-                                slotProps={{ input: { startAdornment: <InputAdornment position="start"><BoltIcon color="warning" /></InputAdornment> } }}
+                                slotProps={{ input: { startAdornment: <InputAdornment position="start"><BoltIcon color="warning" /></InputAdornment>, inputProps: { min: 50, max: 50000 } } }}
                             />
                             <Box sx={{ bgcolor: 'primary.50', borderRadius: 2, p: 2.5 }}>
                                 <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>💡 Como encontrar na conta:</Typography>
@@ -225,7 +230,17 @@ export default function Simulator(_props: PageProps) {
                                     Procure por "Consumo do Mês" ou "kWh" na sua fatura de energia. Se não souber, use o valor médio da sua região.
                                 </Typography>
                             </Box>
-                            <Button variant="contained" size="large" onClick={() => { if (form.monthly_kwh && Number(form.monthly_kwh) >= 50) { setErrors({}); setStep(1); } else { setErrors({ monthly_kwh: 'Informe um consumo válido (mín. 50 kWh)' }); } }} sx={{ py: 1.5, fontWeight: 700 }}>
+                            <Button variant="contained" size="large" onClick={() => {
+                                const kwh = Number(form.monthly_kwh);
+                                if (form.monthly_kwh && kwh >= 50 && kwh <= 50000) {
+                                    setErrors({});
+                                    setStep(1);
+                                } else if (kwh > 50000) {
+                                    setErrors({ monthly_kwh: 'Consumo máximo para simulação: 50.000 kWh/mês. Para projetos industriais, solicite orçamento personalizado.' });
+                                } else {
+                                    setErrors({ monthly_kwh: 'Informe um consumo válido (mín. 50 kWh)' });
+                                }
+                            }} sx={{ py: 1.5, fontWeight: 700 }}>
                                 Próximo →
                             </Button>
                         </Stack>
@@ -277,14 +292,14 @@ export default function Simulator(_props: PageProps) {
                 {step === 2 && result && (
                     <Stack spacing={3}>
                         <Alert severity="success" sx={{ borderRadius: 2 }}>
-                            Cálculo realizado com base na irradiância solar de {result.result.irradiance} kWh/m²/dia para {result.input.state}.
+                            Cálculo para <strong>{result.input.state}</strong> — irradiância {result.result.irradiance} kWh/m²/dia · tarifa local R$ {result.result.tariff.toFixed(2)}/kWh (ANEEL 2024)
                         </Alert>
 
                         {/* KPIs principais */}
                         <Grid container spacing={2}>
                             {[
                                 { icon: <AttachMoneyIcon />, label: 'Economia mensal estimada', value: formatBRL(result.result.monthly_savings_cents), color: 'success.main', bg: 'success.50' },
-                                { icon: <AttachMoneyIcon />, label: 'Economia anual estimada', value: formatBRL(result.result.annual_savings_cents), color: 'primary.main', bg: 'primary.50' },
+                                { icon: <AttachMoneyIcon />, label: 'Economia em 25 anos*', value: formatBRL(result.result.lifetime_savings_cents), color: 'primary.main', bg: 'primary.50' },
                                 { icon: <SolarPowerIcon />, label: 'Potência do sistema', value: `${result.result.system_power_kwp} kWp`, color: 'warning.main', bg: 'warning.50' },
                                 { icon: <Co2Icon />, label: 'CO₂ evitado por ano', value: `${result.result.co2_saved_kg_year} kg`, color: 'success.main', bg: 'success.50' },
                             ].map((stat) => (
@@ -305,10 +320,12 @@ export default function Simulator(_props: PageProps) {
                                 {[
                                     ['Número de painéis', `${result.result.panel_count} painéis de ${result.result.panel_power_w}W`],
                                     ['Área de telhado necessária', `${result.result.roof_area_m2} m²`],
-                                    ['Geração anual estimada', `${result.result.annual_generation_kwh.toLocaleString('pt-BR')} kWh`],
+                                    ['Geração anual estimada (ano 1)', `${result.result.annual_generation_kwh.toLocaleString('pt-BR')} kWh`],
                                     ['Custo estimado do sistema', formatBRL(result.result.system_cost_cents)],
-                                    ['Payback estimado', result.result.payback_years ? `${result.result.payback_years} anos` : 'Calcular com orçamento'],
+                                    ['Payback estimado (com degradação)', result.result.payback_years ? `${result.result.payback_years} anos` : 'Calcular com orçamento'],
                                     ['Conta mensal estimada', `R$ ${result.result.monthly_bill_estimate.toFixed(2)}`],
+                                    ['Tarifa local (ANEEL)', `R$ ${result.result.tariff.toFixed(2)}/kWh`],
+                                    ['Degradação anual painéis', `${result.result.panel_degradation_pct}%/ano (NREL)`],
                                 ].map(([label, value]) => (
                                     <Grid key={label} size={{ xs: 12, sm: 6 }}>
                                         <Stack direction="row" sx={{ justifyContent: 'space-between', py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -318,6 +335,9 @@ export default function Simulator(_props: PageProps) {
                                     </Grid>
                                 ))}
                             </Grid>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}>
+                                * Economia em 25 anos considera degradação real de {result.result.panel_degradation_pct}%/ano dos painéis (padrão NREL). A economia no 25° ano é ~{Math.round(result.result.panel_degradation_pct * 24)}% menor que no 1° ano.
+                            </Typography>
                         </Paper>
 
                         {/* Kit sugerido */}

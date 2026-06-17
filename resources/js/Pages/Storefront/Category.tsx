@@ -41,7 +41,7 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
 
     const [priceRange, setPriceRange] = useState<[number, number]>([
         filters.price_min ?? 0,
-        filters.price_max ?? 500000,
+        filters.price_max ?? 5000000,
     ]);
 
     const applyFilters = useCallback((newFilters: Partial<ProductFilters>) => {
@@ -89,8 +89,8 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
             <Slider
                 value={priceRange}
                 min={0}
-                max={500000}
-                step={1000}
+                max={5000000}
+                step={10000}
                 onChange={(_, val) => setPriceRange(val as [number, number])}
                 onChangeCommitted={(_, val) => {
                     const [min, max] = val as [number, number];
@@ -107,9 +107,19 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
 
             <Divider sx={{ my: 3 }} />
 
-            {/* Outros filtros */}
+            {/* Disponibilidade */}
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Disponibilidade</Typography>
             <FormGroup>
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            size="small"
+                            checked={!!filters.in_stock}
+                            onChange={(e) => applyFilters({ in_stock: e.target.checked || undefined })}
+                        />
+                    }
+                    label={<Typography variant="body2">Em estoque</Typography>}
+                />
                 <FormControlLabel
                     control={
                         <Checkbox
@@ -163,6 +173,9 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
                                         color="primary"
                                         variant="outlined"
                                     />
+                                )}
+                                {filters.in_stock && (
+                                    <Chip label="Em estoque" onDelete={() => removeFilter('in_stock')} size="small" color="success" variant="outlined" />
                                 )}
                                 {filters.on_sale && (
                                     <Chip label="Em promoção" onDelete={() => removeFilter('on_sale')} size="small" color="error" variant="outlined" />
@@ -255,7 +268,7 @@ export default function CategoryPage({ category, products, brands, filters }: Pr
                                         <Avatar
                                             src={product.cover_image ?? undefined}
                                             variant="rounded"
-                                            sx={{ width: 80, height: 80, bgcolor: '#F8F9FA', flexShrink: 0, '& img': { objectFit: 'contain', p: 1 } }}
+                                            sx={{ width: 80, height: 80, bgcolor: '#F8F9FA', flexShrink: 0, '& img': { objectFit: 'cover' } }}
                                         />
                                         <Box sx={{ flex: 1, minWidth: 0 }}>
                                             {product.brand_name && (

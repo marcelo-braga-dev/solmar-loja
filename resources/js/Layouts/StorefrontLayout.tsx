@@ -165,6 +165,7 @@ export default function StorefrontLayout({ children }: Props) {
                                     { label: 'Inversores', href: '/categorias/inversores' },
                                     { label: 'Baterias', href: '/categorias/baterias-e-armazenamento' },
                                     { label: 'Mobilidade Elétrica', href: '/categorias/mobilidade-eletrica' },
+                                    { label: '🔧 Monte seu Kit', href: '/monte-seu-kit' },
                                     { label: '☀ Simulador', href: '/simulador' },
                                     { label: 'Blog', href: '/blog' },
                                 ].map((item) => (
@@ -207,6 +208,7 @@ export default function StorefrontLayout({ children }: Props) {
                             { label: 'Inversores', href: '/categorias/inversores' },
                             { label: 'Baterias', href: '/categorias/baterias-e-armazenamento' },
                             { label: 'Mobilidade Elétrica', href: '/categorias/mobilidade-eletrica' },
+                            { label: '🔧 Monte seu Kit', href: '/monte-seu-kit' },
                             { label: 'Simulador Solar', href: '/simulador' },
                             { label: 'Blog', href: '/blog' },
                         ].map((item) => (

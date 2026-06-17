@@ -7,9 +7,9 @@
 
 ## Estado Atual
 
-**Última atualização:** 2026-06-04
+**Última atualização:** 2026-06-17
 **Status:** ✅ Plataforma MVP+ Completa — em evolução contínua
-**Build Frontend:** ✓ TypeScript 0 erros · Vite 8 · ~1.800 módulos
+**Build Frontend:** ✓ TypeScript 0 erros · Vite 8 · ~2.414 módulos
 **Testes:** 49 unit tests locais · Feature tests no Sail
 
 ---
@@ -255,14 +255,57 @@ npm run dev
 - **Landing B2B `/portal-b2b`:** hero gradiente com chip dourado, benefícios (4 cards hover animado), tipos de empresa elegíveis (4 cards com checkmark), CTA final
 - **AdminLayout:** seção "Portal B2B" com Empresas e Tabelas de Preço no menu lateral
 
-### Propostas Comerciais — Estrutura Base ✅
+### FASE 13 — Melhorias e Correções da Loja ✅
+
+- **`objectFit: cover`** — corrigido em `ProductCard.tsx`, `Category.tsx` (modo lista) e `Product.tsx` (sticky bar); eliminada violação da regra 9
+- **`isFavorite` do servidor** — `ProductController` agora consulta `customer->favoriteProducts()->exists()` e passa `is_favorite` ao frontend; `Product.tsx` inicializa o state correto
+- **Estoque na página do produto** — `ProductController` consulta `DB::table('stocks')` e passa `stock_quantity`; `Product.tsx` exibe badge "Em estoque" / "Últimas N unidades" / form de alerta de estoque quando zerado
+- **Form de alerta de estoque** — código estava declarado mas nunca exibido; agora renderiza inline quando `stock_quantity === 0` com pré-preenchimento do email do usuário logado
+- **Filtro `inStock` funcional** — `EloquentProductRepository::filter()` implementado com `whereExists` na tabela `stocks` (sem Model Eloquent, direto em DB)
+- **Slider de preço na Category** — max de `500000` (R$5.000) → `5000000` (R$50.000), step de `1000` → `10000`
+- **Filtro "Em estoque"** na Category — checkbox adicionado no painel de filtros + chip de remoção na toolbar
+- **"Monte seu Kit" no nav** — adicionado em desktop e mobile no `StorefrontLayout.tsx`
+- **Seção Kit Builder na Home** — novo banner escuro entre Categorias e Ofertas, com 4 steps visuais e CTAs "Montar meu Kit" + "Simular primeiro"
+- **Empty Cart melhorado** — 3 cards de sugestão (Kits Fotovoltaicos, Monte seu Kit, Simular Economia) com links diretos
+- **Destaque Pix no carrinho** — box verde com `PixIcon` mostrando valor com 5% de desconto no resumo do pedido
+- **Link "Ver todas as ofertas"** — corrigido de `/categorias/energia-solar` para `/busca?on_sale=1`
+- **SearchController com filtros** — suporta `on_sale` e `in_stock` via query params; página Search.tsx exibe título "Ofertas Especiais" quando `on_sale=1`
+- **`featured` nos listings** — `CategoryController` e `SearchController` passam `featured: $p->featured` para o ProductCard exibir badge "⭐ Destaque"
+
+### Propostas Comerciais — Completo ✅
 
 - **`Proposal` model (domínio `Orders`):** uuid, reference (PROP-XXXXXX), user_id (consultor), customer_id, price_list_id, status flow (draft/sent/viewed/accepted/rejected/expired/converted), valid_until, discount_percent, service_cents, notes, pdf_path
   - `isEditable()`, `isExpired()`, `recalculate()`, `statusLabel()`, `statusColor()`
 - **`ProposalItem` model:** product_id, sku, name, unit_price_cents, discount_percent, quantity, total_cents (auto-calculado no `booted()`)
   - `unitPriceAfterDiscount()`: aplica desconto individual do item
-- **`Service` model:** name, description, price_cents, category, is_active
-- UI de criação de propostas ainda não implementada (botão "Nova Proposta" no dashboard do consultor aponta para `/consultor/propostas/criar`)
+- **`ConsultantProposalController`** — index, create, store, show, send, destroy
+- **Rotas registradas:** `/consultor/propostas`, `/consultor/propostas/criar`, `/consultor/propostas/{uuid}`, enviar, destroy
+- **`Proposals.tsx`** — listagem paginada com tabela, chips de status, link para detalhe
+- **`CreateProposal.tsx`** — formulário completo: dados básicos, dados do cliente, itens (tipo/descrição/qtd/preço/desconto), observações, sidebar com totais calculados em tempo real
+- **`ShowProposal.tsx`** — detalhe da proposta com tabela de itens, totais, botões "Marcar como Enviada" e "Excluir"
+
+### FASE 14 — Correções Críticas de Checkout e Propostas ✅
+
+- **Validação de estoque no checkout** — `CheckoutController::store()` agora verifica `DB::table('stocks')` para cada item do carrinho antes de criar o pedido; retorna erro com nome do produto e quantidade disponível se estoque insuficiente; previne overselling
+- **Cálculo de frete integrado ao checkout** — `Checkout.tsx` tem seção "Opções de Entrega" com botão "Calcular Frete" que apresenta PAC e SEDEX com prazo e preço; grátis acima de R$300.000; `shipping_cents` e `shipping_method` enviados ao controller; `CheckoutController` aceita e armazena valores reais (antes era `shipping_cents => 0` fixo)
+- **Botão "Confirmar Pedido" bloqueado** até selecionar frete (UX de segurança)
+- **Selector de parcelas** — quando `payment_method === credit_card`, exibe Select com opções 1–12x calculadas sobre o total real (incluindo frete e desconto Pix); parcelas exibidas no resumo
+- **Desconto Pix** aparece como linha separada no resumo do checkout com valor calculado dinamicamente
+- **Total dinâmico** no checkout: subtotal − desconto Pix + frete, atualizado em tempo real no sidebar
+
+### FASE 15 — Melhorias Médias de UX e Funcionalidades ✅
+
+- **#11 Busca com filtros** — `Search.tsx` reformulado com sidebar de filtros (marca, faixa de preço, em estoque, promoção); `SearchController` atualizado com parâmetros `brand_id`, `price_min`, `price_max`, `sort_by`; drawer mobile com mesmo set de filtros; chips de filtros ativos com botão de remover; toggle grid/lista; select de ordenação; compatível com Scout (Meilisearch) e SQL fallback
+- **#12 Wishlist compartilhável** — migração adiciona `wishlist_token` (UUID único) e `wishlist_public` (boolean) em `customers`; rota pública `/wishlist/{token}`; `AccountController::toggleWishlistSharing()` gera token e alterna público; `Favorites.tsx` tem botão "Compartilhar" com URL copiável; `SharedWishlist.tsx` exibe a lista com `StorefrontLayout`
+- **#13 Degradação de painel no Simulador** — `SolarSimulatorService` agora calcula economia em 25 anos com degradação real de 0,5%/ano (padrão NREL) usando loop de juros compostos; payback calculado com interpolação ano a ano; resultado inclui `lifetime_savings_cents` e `panel_degradation_pct`; nota explicativa no card de resultado
+- **#14 Tarifa por estado no Simulador** — `SolarSimulatorService` contém map `TARIFF_BY_STATE` com tarifas reais ANEEL 2024 para todos 27 estados; `Simulator.tsx` exibe estado, irradiância e tarifa no resultado; padrão nacional 0,75 R$/kWh como fallback
+- **#15 Programa de fidelidade** — migrations: `loyalty_balances` + `loyalty_transactions`; `LoyaltyBalance` e `LoyaltyTransaction` models; `LoyaltyService` com `earnFromOrder()` (1% do total), `redeem()`, `getOrCreateBalance()`, `previewEarnings()`; `AccountController::loyaltyPoints()`; `LoyaltyPoints.tsx` com KPIs e histórico; menu "Meus Pontos" no `AccountLayout`; prévia de pontos ganhos no checkout summary
+- **#16 Validação do Simulador** — campo kWh/mês tem `min: 50`, `max: 50000`; `SolarSimulatorService` valida faixa server-side; erro amigável em pt-BR
+- **#18 Comparação sincronizada** — `product_comparisons` tabela (user_id, product_id); `syncComparisons()` e `getComparisons()` no `AccountController`; `useComparison.ts` reescrito para sincronizar com servidor quando autenticado (GET na montagem, POST a cada mudança); `useRef(syncing)` previne re-entrância
+
+**Novas migrations:** `2026_06_17_000001_add_wishlist_sharing_and_comparison_sync.php`, `2026_06_17_000002_create_loyalty_points_table.php`
+
+**#17 (PWA push notifications):** não implementado — requer VAPID keys, Service Worker, tabela de push subscriptions, integração com gateway de notificação — escopo de sprint dedicado.
 
 ---
 
@@ -411,6 +454,11 @@ npm run dev
 | Containerização de largura excessiva | `Container maxWidth="xl"` (1536px) em todas as páginas | Alterado para `maxWidth="lg"` (1200px) |
 | Cards estreitos após redução container | Grid `lg: 3` (4 colunas) com 1200px | Alterado para `lg: 4` (3 colunas) + `spacing={3}` |
 | Espaço em branco abaixo da galeria | Grid `alignItems: 'stretch'` + galeria sem sticky | `alignItems: 'flex-start'` + `position: sticky; top: 88px` na galeria |
+| `objectFit: contain` + padding em 3 lugares | Violação da regra 9 do CLAUDE.md em `ProductCard.tsx`, `Category.tsx` (lista) e `Product.tsx` (sticky bar) | Corrigido para `objectFit: 'cover'` sem padding em todos os 3 locais |
+| `isFavorite` sempre `false` | `Product.tsx` inicializava sem consultar o servidor | `ProductController` passa `is_favorite` via `customer->favoriteProducts()->exists()` |
+| Filtro `inStock` sem implementação | `ProductFilterData` tinha `inStock` mas repositório ignorava | `EloquentProductRepository::filter()` implementado com `whereExists` na tabela `stocks` |
+| Slider de preço limitado a R$5.000 | `max={500000}` hardcoded na Category | Corrigido para `max={5000000}` (R$50.000) — compatível com preços solares |
+| Alerta de estoque sem UI | `sendStockAlert` declarado em Product.tsx mas nunca exibido | Form inline exibido quando `stock_quantity === 0` |
 
 ---
 

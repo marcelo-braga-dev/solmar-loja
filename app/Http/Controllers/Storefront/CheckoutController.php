@@ -60,15 +60,17 @@ final class CheckoutController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'recipient'      => ['required', 'string'],
-            'cep'            => ['required', 'string'],
-            'street'         => ['required', 'string'],
-            'number'         => ['required', 'string'],
-            'district'       => ['required', 'string'],
-            'city'           => ['required', 'string'],
-            'state'          => ['required', 'string', 'size:2'],
-            'payment_method' => ['required', new Enum(PaymentMethod::class)],
-            'installments'   => ['integer', 'min:1', 'max:12'],
+            'recipient'       => ['required', 'string'],
+            'cep'             => ['required', 'string'],
+            'street'          => ['required', 'string'],
+            'number'          => ['required', 'string'],
+            'district'        => ['required', 'string'],
+            'city'            => ['required', 'string'],
+            'state'           => ['required', 'string', 'size:2'],
+            'payment_method'  => ['required', new Enum(PaymentMethod::class)],
+            'installments'    => ['integer', 'min:1', 'max:12'],
+            'shipping_cents'  => ['integer', 'min:0'],
+            'shipping_method' => ['nullable', 'string', 'max:100'],
         ]);
 
         $cart = $this->cartService->getOrCreate($request);
@@ -77,7 +79,25 @@ final class CheckoutController extends Controller
             return back()->with('error', 'Carrinho vazio.');
         }
 
-        $order = DB::transaction(function () use ($cart, $request): Order {
+        // Validate stock availability before creating the order
+        $cart->load('items.product');
+        foreach ($cart->items as $item) {
+            $available = (int) DB::table('stocks')
+                ->where('product_id', $item->product_id)
+                ->whereNull('variant_id')
+                ->sum('quantity_available');
+
+            if ($available < $item->quantity) {
+                $name = $item->product?->name ?? 'Produto';
+
+                return back()->with('error', "Estoque insuficiente para \"{$name}\". Disponível: {$available} unidade(s).");
+            }
+        }
+
+        $shippingCents  = $request->integer('shipping_cents', 0);
+        $shippingMethod = $request->string('shipping_method', 'a_combinar')->value() ?: 'a_combinar';
+
+        $order = DB::transaction(function () use ($cart, $request, $shippingCents, $shippingMethod): Order {
             $shippingAddress = [
                 'recipient'  => $request->string('recipient')->value(),
                 'cep'        => $request->string('cep')->value(),
@@ -89,7 +109,6 @@ final class CheckoutController extends Controller
                 'state'      => $request->string('state')->value(),
             ];
 
-            $cart->load('items.product');
             $subtotal = $cart->totalCents();
 
             $order = Order::create([
@@ -97,10 +116,10 @@ final class CheckoutController extends Controller
                 'status'           => 'pending',
                 'subtotal_cents'   => $subtotal,
                 'discount_cents'   => 0,
-                'shipping_cents'   => 0,
-                'total_cents'      => $subtotal,
+                'shipping_cents'   => $shippingCents,
+                'total_cents'      => $subtotal + $shippingCents,
                 'shipping_address' => $shippingAddress,
-                'shipping_method'  => 'a_combinar',
+                'shipping_method'  => $shippingMethod,
                 'placed_at'        => now(),
             ]);
 

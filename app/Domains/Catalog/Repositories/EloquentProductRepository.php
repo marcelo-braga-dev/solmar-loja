@@ -7,7 +7,6 @@ namespace App\Domains\Catalog\Repositories;
 use App\Domains\Catalog\Contracts\ProductRepositoryInterface;
 use App\Domains\Catalog\Data\ProductData;
 use App\Domains\Catalog\Data\ProductFilterData;
-use App\Domains\Catalog\Enums\ProductStatus;
 use App\Domains\Catalog\Models\Product;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -63,6 +62,14 @@ final class EloquentProductRepository implements ProductRepositoryInterface
         if ($filter->onSale) {
             $query->whereNotNull('compare_at_price_cents')
                 ->whereColumn('price_cents', '<', 'compare_at_price_cents');
+        }
+
+        if ($filter->inStock) {
+            $query->whereExists(fn ($sub) => $sub->from('stocks')
+                ->whereColumn('stocks.product_id', 'products.id')
+                ->whereNull('stocks.variant_id')
+                ->where('stocks.quantity_available', '>', 0)
+            );
         }
 
         if (! empty($filter->attributeValueIds)) {
@@ -164,25 +171,25 @@ final class EloquentProductRepository implements ProductRepositoryInterface
     private function toAttributes(ProductData $data): array
     {
         return [
-            'name'                   => $data->name,
-            'slug'                   => $data->slug,
-            'sku'                    => $data->sku,
-            'short_description'      => $data->shortDescription,
-            'description'            => $data->description,
-            'price_cents'            => $data->priceCents,
+            'name' => $data->name,
+            'slug' => $data->slug,
+            'sku' => $data->sku,
+            'short_description' => $data->shortDescription,
+            'description' => $data->description,
+            'price_cents' => $data->priceCents,
             'compare_at_price_cents' => $data->compareAtPriceCents,
-            'cost_cents'             => $data->costCents,
-            'status'                 => $data->status,
-            'brand_id'               => $data->brandId,
-            'weight_grams'           => $data->weightGrams,
-            'length_mm'              => $data->lengthMm,
-            'width_mm'               => $data->widthMm,
-            'height_mm'              => $data->heightMm,
-            'specifications'         => $data->specifications,
-            'featured'               => $data->featured,
-            'meta_title'             => $data->metaTitle,
-            'meta_description'       => $data->metaDescription,
-            'external_id'            => $data->externalId,
+            'cost_cents' => $data->costCents,
+            'status' => $data->status,
+            'brand_id' => $data->brandId,
+            'weight_grams' => $data->weightGrams,
+            'length_mm' => $data->lengthMm,
+            'width_mm' => $data->widthMm,
+            'height_mm' => $data->heightMm,
+            'specifications' => $data->specifications,
+            'featured' => $data->featured,
+            'meta_title' => $data->metaTitle,
+            'meta_description' => $data->metaDescription,
+            'external_id' => $data->externalId,
         ];
     }
 

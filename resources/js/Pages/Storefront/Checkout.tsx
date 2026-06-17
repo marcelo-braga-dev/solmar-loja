@@ -2,13 +2,17 @@ import { Head, useForm } from '@inertiajs/react';
 import {
     Box, Container, Typography, Grid, Paper, Stack, Button,
     TextField, Divider, Radio, RadioGroup, FormControlLabel,
-    Stepper, Step, StepLabel,
+    Stepper, Step, StepLabel, CircularProgress, Chip,
+    FormControl, InputLabel, Select, MenuItem, Alert,
 } from '@mui/material';
+import { useState } from 'react';
 import CepField from '@/Components/ui/CepField';
 import PixIcon from '@mui/icons-material/AccountBalance';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import LockIcon from '@mui/icons-material/Lock';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import StarIcon from '@mui/icons-material/Star';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
 import { formatBRL } from '@/Lib/formatters';
 import type { PageProps } from '@inertiajs/react';
@@ -36,6 +40,13 @@ interface CartItem {
     cover_image?: string;
 }
 
+interface ShippingOption {
+    name: string;
+    days: number;
+    price_cents: number;
+    free: boolean;
+}
+
 interface Props extends PageProps {
     cart: { items: CartItem[]; total_cents: number; item_count: number };
     addresses: AddressOption[];
@@ -43,8 +54,24 @@ interface Props extends PageProps {
 
 const STEPS = ['Endereço', 'Entrega', 'Pagamento', 'Confirmação'];
 
+const FREE_SHIPPING_THRESHOLD = 30000_00; // R$ 30.000 (em centavos)
+
+function calcShippingOptions(cep: string, totalCents: number): ShippingOption[] {
+    if (cep.replace(/\D/g, '').length < 8) return [];
+    const free = totalCents >= FREE_SHIPPING_THRESHOLD;
+    return [
+        { name: 'PAC (Correios)', days: 8, price_cents: free ? 0 : 2990, free },
+        { name: 'SEDEX (Correios)', days: 3, price_cents: free ? 0 : 5990, free },
+    ];
+}
+
+const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+
 export default function Checkout({ cart, addresses }: Props) {
-    const [activeStep] = [0]; // Simplified single step for now
+    const [activeStep] = [0];
+    const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+    const [loadingShipping, setLoadingShipping] = useState(false);
+    const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
 
     const defaultAddress = addresses[0];
 
@@ -58,12 +85,73 @@ export default function Checkout({ cart, addresses }: Props) {
         city: defaultAddress?.city ?? '',
         state: defaultAddress?.state ?? '',
         payment_method: 'pix',
+        installments: 1,
+        shipping_cents: 0,
+        shipping_method: '',
     });
+
+    const handleCepFill = (info: { logradouro: string; bairro: string; localidade: string; uf: string }) => {
+        setData((prev) => ({
+            ...prev,
+            street: info.logradouro || prev.street,
+            district: info.bairro || prev.district,
+            city: info.localidade,
+            state: info.uf,
+        }));
+    };
+
+    const handleCepChange = (masked: string) => {
+        setData('cep', masked);
+        setShippingOptions([]);
+        setSelectedShipping(null);
+        setData('shipping_cents', 0);
+        setData('shipping_method', '');
+    };
+
+    const handleCalculateShipping = () => {
+        setLoadingShipping(true);
+        setTimeout(() => {
+            const options = calcShippingOptions(data.cep, cart.total_cents);
+            setShippingOptions(options);
+            if (options.length > 0) {
+                setSelectedShipping(options[0]);
+                setData('shipping_cents', options[0].price_cents);
+                setData('shipping_method', options[0].name);
+            }
+            setLoadingShipping(false);
+        }, 800);
+    };
+
+    const handleSelectShipping = (option: ShippingOption) => {
+        setSelectedShipping(option);
+        setData('shipping_cents', option.price_cents);
+        setData('shipping_method', option.name);
+    };
+
+    const handleSelectAddress = (addr: AddressOption) => {
+        setData({
+            ...data,
+            recipient: addr.recipient,
+            cep: addr.cep,
+            street: addr.street,
+            number: addr.number,
+            complement: addr.complement ?? '',
+            district: addr.district,
+            city: addr.city,
+            state: addr.state,
+        });
+        setShippingOptions([]);
+        setSelectedShipping(null);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         post('/checkout');
     };
+
+    const pixDiscount = data.payment_method === 'pix' ? Math.round(cart.total_cents * 0.05) : 0;
+    const shippingCents = data.shipping_cents;
+    const totalCents = cart.total_cents - pixDiscount + shippingCents;
 
     return (
         <StorefrontLayout>
@@ -93,7 +181,7 @@ export default function Checkout({ cart, addresses }: Props) {
                                                     <Paper
                                                         key={addr.id}
                                                         elevation={0}
-                                                        onClick={() => setData({ ...data, recipient: addr.recipient, cep: addr.cep, street: addr.street, number: addr.number, complement: addr.complement ?? '', district: addr.district, city: addr.city, state: addr.state })}
+                                                        onClick={() => handleSelectAddress(addr)}
                                                         sx={{ p: 2, border: '1px solid', borderColor: addr.cep === data.cep ? 'primary.main' : 'divider', borderRadius: 2, cursor: 'pointer', bgcolor: addr.cep === data.cep ? 'primary.50' : 'transparent' }}
                                                     >
                                                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{addr.label}</Typography>
@@ -112,14 +200,8 @@ export default function Checkout({ cart, addresses }: Props) {
                                         <Grid size={{ xs: 12, sm: 4 }}>
                                             <CepField
                                                 value={data.cep}
-                                                onChange={(masked) => setData('cep', masked)}
-                                                onFill={(info) => setData((prev) => ({
-                                                    ...prev,
-                                                    street:   info.logradouro || prev.street,
-                                                    district: info.bairro     || prev.district,
-                                                    city:     info.localidade,
-                                                    state:    info.uf,
-                                                }))}
+                                                onChange={handleCepChange}
+                                                onFill={handleCepFill}
                                                 error={errors.cep}
                                                 required
                                             />
@@ -143,6 +225,64 @@ export default function Checkout({ cart, addresses }: Props) {
                                             <TextField label="UF *" value={data.state} onChange={(e) => setData('state', e.target.value.toUpperCase())} error={!!errors.state} helperText={errors.state} fullWidth size="small" slotProps={{ htmlInput: { maxLength: 2 } }} />
                                         </Grid>
                                     </Grid>
+                                </Paper>
+
+                                {/* Frete */}
+                                <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+                                        <LocalShippingIcon sx={{ mr: 1, verticalAlign: 'middle', fontSize: 20 }} />
+                                        Opções de Entrega
+                                    </Typography>
+
+                                    {shippingOptions.length === 0 ? (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1 }}>
+                                                Preencha o CEP e calcule o frete
+                                            </Typography>
+                                            <Button
+                                                variant="outlined"
+                                                size="small"
+                                                onClick={handleCalculateShipping}
+                                                disabled={data.cep.replace(/\D/g, '').length < 8 || loadingShipping}
+                                                startIcon={loadingShipping ? <CircularProgress size={14} /> : undefined}
+                                            >
+                                                {loadingShipping ? 'Calculando...' : 'Calcular Frete'}
+                                            </Button>
+                                        </Box>
+                                    ) : (
+                                        <Stack spacing={1}>
+                                            {shippingOptions.map((option) => (
+                                                <Paper
+                                                    key={option.name}
+                                                    elevation={0}
+                                                    onClick={() => handleSelectShipping(option)}
+                                                    sx={{
+                                                        p: 2, border: '1px solid', borderRadius: 2, cursor: 'pointer',
+                                                        borderColor: selectedShipping?.name === option.name ? 'primary.main' : 'divider',
+                                                        bgcolor: selectedShipping?.name === option.name ? 'primary.50' : 'transparent',
+                                                    }}
+                                                >
+                                                    <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <Box>
+                                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{option.name}</Typography>
+                                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                                                Prazo estimado: {option.days} dias úteis
+                                                            </Typography>
+                                                        </Box>
+                                                        <Box sx={{ textAlign: 'right' }}>
+                                                            {option.free ? (
+                                                                <Chip label="Grátis" size="small" color="success" />
+                                                            ) : (
+                                                                <Typography variant="body2" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                                                                    {formatBRL(option.price_cents)}
+                                                                </Typography>
+                                                            )}
+                                                        </Box>
+                                                    </Stack>
+                                                </Paper>
+                                            ))}
+                                        </Stack>
+                                    )}
                                 </Paper>
 
                                 {/* Pagamento */}
@@ -180,6 +320,30 @@ export default function Checkout({ cart, addresses }: Props) {
                                             </Paper>
                                         ))}
                                     </RadioGroup>
+
+                                    {data.payment_method === 'credit_card' && (
+                                        <Box sx={{ mt: 2 }}>
+                                            <FormControl fullWidth size="small">
+                                                <InputLabel>Parcelas</InputLabel>
+                                                <Select
+                                                    value={data.installments}
+                                                    label="Parcelas"
+                                                    onChange={(e) => setData('installments', Number(e.target.value))}
+                                                >
+                                                    {INSTALLMENT_OPTIONS.map((n) => {
+                                                        const parcelValue = totalCents / n;
+                                                        return (
+                                                            <MenuItem key={n} value={n}>
+                                                                {n === 1
+                                                                    ? `À vista — ${formatBRL(totalCents)}`
+                                                                    : `${n}x de ${formatBRL(parcelValue)} sem juros`}
+                                                            </MenuItem>
+                                                        );
+                                                    })}
+                                                </Select>
+                                            </FormControl>
+                                        </Box>
+                                    )}
                                 </Paper>
                             </Stack>
                         </Grid>
@@ -211,13 +375,30 @@ export default function Checkout({ cart, addresses }: Props) {
                                     </Stack>
                                     <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>Frete</Typography>
-                                        <Typography variant="body2" sx={{ color: 'success.main' }}>A calcular</Typography>
+                                        {shippingCents === 0 && !selectedShipping ? (
+                                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>A calcular</Typography>
+                                        ) : selectedShipping?.free ? (
+                                            <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>Grátis</Typography>
+                                        ) : (
+                                            <Typography variant="body2">{formatBRL(shippingCents)}</Typography>
+                                        )}
                                     </Stack>
+                                    {pixDiscount > 0 && (
+                                        <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                                            <Typography variant="body2" sx={{ color: 'success.main' }}>Desconto Pix (5%)</Typography>
+                                            <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>− {formatBRL(pixDiscount)}</Typography>
+                                        </Stack>
+                                    )}
                                     <Divider />
                                     <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Total</Typography>
-                                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'primary.main' }}>{formatBRL(cart.total_cents)}</Typography>
+                                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'primary.main' }}>{formatBRL(totalCents)}</Typography>
                                     </Stack>
+                                    {data.payment_method === 'credit_card' && data.installments > 1 && (
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'right' }}>
+                                            {data.installments}x de {formatBRL(totalCents / data.installments)} sem juros
+                                        </Typography>
+                                    )}
                                 </Stack>
 
                                 <Button
@@ -225,14 +406,27 @@ export default function Checkout({ cart, addresses }: Props) {
                                     variant="contained"
                                     size="large"
                                     fullWidth
-                                    disabled={processing}
+                                    disabled={processing || !selectedShipping}
                                     startIcon={<LockIcon />}
                                     sx={{ py: 1.5, fontWeight: 700 }}
                                 >
                                     {processing ? 'Processando...' : 'Confirmar Pedido'}
                                 </Button>
 
-                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', textAlign: 'center', mt: 1 }}>
+                                {!selectedShipping && (
+                                    <Typography variant="caption" sx={{ color: 'warning.main', display: 'block', textAlign: 'center', mt: 1 }}>
+                                        Selecione uma opção de entrega para continuar
+                                    </Typography>
+                                )}
+                                {/* Loyalty preview */}
+                                <Alert
+                                    severity="info"
+                                    icon={<StarIcon fontSize="small" />}
+                                    sx={{ mt: 1.5, fontSize: 12, '& .MuiAlert-message': { py: 0 } }}
+                                >
+                                    Você vai ganhar <strong>{Math.floor(totalCents * 0.01).toLocaleString('pt-BR')} pontos</strong> nessa compra (≈ {formatBRL(Math.floor(totalCents * 0.01))} em créditos)
+                                </Alert>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', textAlign: 'center', mt: 0.5 }}>
                                     Compra 100% segura e protegida
                                 </Typography>
                             </Paper>
