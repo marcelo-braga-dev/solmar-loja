@@ -9,7 +9,7 @@
     <table style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <tr>
             <td style="background: linear-gradient(135deg, #0B5FFF 0%, #003BB5 100%); padding: 40px; text-align: center;">
-                <h1 style="color: #FFB300; margin: 0; font-size: 28px; font-weight: 900;">☀️ SolarHub</h1>
+                <h1 style="color: #FFB300; margin: 0; font-size: 28px; font-weight: 900;">☀️ {{ $storeName }}</h1>
                 <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Newsletter sobre energia solar</p>
             </td>
         </tr>
@@ -17,7 +17,7 @@
             <td style="padding: 40px;">
                 <h2 style="color: #1a1a2e; margin: 0 0 16px; font-size: 22px;">Olá, {{ $subscriberName }}!</h2>
                 <p style="color: #555; line-height: 1.6; margin: 0 0 24px;">
-                    Obrigado por se inscrever na newsletter do <strong>SolarHub</strong>! Para confirmar sua inscrição e começar a receber nossas dicas e novidades sobre energia solar, clique no botão abaixo:
+                    Obrigado por se inscrever na newsletter <strong>{{ $storeName }}</strong>! Para confirmar sua inscrição e começar a receber nossas dicas e novidades sobre energia solar, clique no botão abaixo:
                 </p>
 
                 <div style="text-align: center; margin: 32px 0;">
@@ -36,7 +36,7 @@
         <tr>
             <td style="background: #f8f9fa; padding: 24px; text-align: center;">
                 <p style="color: #aaa; font-size: 12px; margin: 0;">
-                    © {{ date('Y') }} SolarHub Commerce. Todos os direitos reservados.
+                    © {{ date('Y') }} {{ $storeName }}. Todos os direitos reservados.
                 </p>
             </td>
         </tr>

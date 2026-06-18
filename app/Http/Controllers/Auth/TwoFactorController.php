@@ -5,22 +5,26 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Domains\Auth\Services\TwoFactorService;
+use App\Domains\Settings\Services\SettingsService;
 use App\Http\Controllers\Controller;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use BaconQrCode\Renderer\Image\SvgImageBackEnd;
-use PragmaRX\Google2FAQRCode\QRCode\Bacon as BaconQrCodeService;
 use PragmaRX\Google2FAQRCode\Google2FA as Google2FAQRCode;
+use PragmaRX\Google2FAQRCode\QRCode\Bacon as BaconQrCodeService;
 
 final class TwoFactorController extends Controller
 {
-    public function __construct(private readonly TwoFactorService $twoFactorService) {}
+    public function __construct(
+        private readonly TwoFactorService $twoFactorService,
+        private readonly SettingsService $settings,
+    ) {}
 
     public function setup(Request $request): Response
     {
-        $user   = $request->user();
+        $user = $request->user();
         $secret = null;
         $qrCode = null;
 
@@ -29,20 +33,20 @@ final class TwoFactorController extends Controller
 
             session(['two_factor_setup_secret' => $secret]);
 
-            $g2fa = new Google2FAQRCode(new BaconQrCodeService(new SvgImageBackEnd()));
+            $g2fa = new Google2FAQRCode(new BaconQrCodeService(new SvgImageBackEnd));
 
             $qrCode = $g2fa->getQRCodeInline(
-                config('app.name', 'SolarHub'),
+                $this->settings->get('store_name', config('app.name')),
                 $user->email,
                 $secret,
             );
         }
 
         return Inertia::render('Auth/TwoFactor/Setup', [
-            'enabled'        => $user->hasTwoFactorEnabled(),
-            'secret'         => $secret,
-            'qrCode'         => $qrCode ?? null,
-            'recoveryCodes'  => $user->hasTwoFactorEnabled()
+            'enabled' => $user->hasTwoFactorEnabled(),
+            'secret' => $secret,
+            'qrCode' => $qrCode ?? null,
+            'recoveryCodes' => $user->hasTwoFactorEnabled()
                 ? $this->twoFactorService->getRecoveryCodes($user)
                 : [],
         ]);
@@ -54,7 +58,7 @@ final class TwoFactorController extends Controller
             'code' => ['required', 'string', 'digits:6'],
         ]);
 
-        $user   = $request->user();
+        $user = $request->user();
         $secret = session('two_factor_setup_secret');
 
         if (! $secret || ! $this->twoFactorService->enable($user, $secret, $request->string('code')->value())) {

@@ -31,7 +31,7 @@ const NAV: NavItem[] = [
 interface Props { children: ReactNode; title?: string }
 
 export default function ConsultantLayout({ children, title = 'Painel do Consultor' }: Props) {
-    const { auth } = usePage<SharedProps>().props;
+    const { auth, branding } = usePage<SharedProps>().props;
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -45,11 +45,15 @@ export default function ConsultantLayout({ children, title = 'Painel do Consulto
             {/* Logo */}
             <Box sx={{ p: 2.5, borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'linear-gradient(135deg, rgba(11,95,255,0.25), rgba(11,95,255,0.05))' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #FFB300, #FF8C00)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(255,179,0,0.35)' }}>
-                        <SolarPowerIcon sx={{ color: 'white', fontSize: 20 }} />
-                    </Box>
+                    {branding?.logo_dark_url || branding?.logo_url ? (
+                        <Box component="img" src={branding.logo_dark_url || branding.logo_url} alt={branding.store_name} sx={{ height: 36, maxWidth: 120, objectFit: 'contain' }} />
+                    ) : (
+                        <Box sx={{ width: 36, height: 36, borderRadius: '10px', background: 'linear-gradient(135deg, #FFB300, #FF8C00)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(255,179,0,0.35)' }}>
+                            <SolarPowerIcon sx={{ color: 'white', fontSize: 20 }} />
+                        </Box>
+                    )}
                     <Box>
-                        <Typography sx={{ fontWeight: 800, color: 'white', fontSize: 14, lineHeight: 1 }}>SolarHub</Typography>
+                        <Typography sx={{ fontWeight: 800, color: 'white', fontSize: 14, lineHeight: 1 }}>{branding?.store_name || 'Minha Loja'}</Typography>
                         <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: 1.2, textTransform: 'uppercase' }}>Portal Consultor</Typography>
                     </Box>
                 </Box>

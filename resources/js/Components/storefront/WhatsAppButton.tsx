@@ -7,13 +7,14 @@ import type { SharedProps } from '@/Types/inertia';
 
 export default function WhatsAppButton() {
     const { branding } = usePage<SharedProps>().props;
+    const storeName = branding?.store_name || 'Nossa loja';
     const phone = branding?.social_whatsapp?.replace(/\D/g, '') || '5511999999999';
     const [open, setOpen] = useState(false);
     const [dismissed, setDismissed] = useState(false);
 
     if (dismissed) return null;
 
-    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent('Olá! Preciso de ajuda com um produto da SolarHub Commerce.')}`;
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(`Olá! Preciso de ajuda com um produto da ${storeName}.`)}`;
 
     return (
         <Box sx={{
@@ -47,7 +48,7 @@ export default function WhatsAppButton() {
                             </Box>
                             <Box>
                                 <Typography sx={{ color: 'white', fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>
-                                    SolarHub Commerce
+                                    {storeName}
                                 </Typography>
                                 <Stack direction="row" spacing={0.5} alignItems="center">
                                     <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#A8F0C6' }} />

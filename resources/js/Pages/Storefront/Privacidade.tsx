@@ -1,6 +1,7 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { Box, Container, Divider, Typography, Stack } from '@mui/material';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
+import type { SharedProps } from '@/Types/inertia';
 
 const SECTIONS = [
     {
@@ -38,9 +39,12 @@ const SECTIONS = [
 ];
 
 export default function Privacidade() {
+    const { branding } = usePage<SharedProps>().props;
+    const storeName = branding?.store_name || 'Nossa loja';
+
     return (
         <StorefrontLayout>
-            <Head title="Política de Privacidade — SolarHub" />
+            <Head title="Política de Privacidade" />
 
             <Box sx={{ bgcolor: 'primary.main', color: 'white', py: { xs: 6, md: 8 }, textAlign: 'center' }}>
                 <Container maxWidth="md">
@@ -53,7 +57,7 @@ export default function Privacidade() {
 
             <Container maxWidth="md" sx={{ py: 8 }}>
                 <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary', lineHeight: 1.8 }}>
-                    O SolarHub Commerce está comprometido com a proteção da sua privacidade. Esta política descreve como coletamos, usamos e protegemos suas informações pessoais em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018).
+                    {storeName} está comprometido com a proteção da sua privacidade. Esta política descreve como coletamos, usamos e protegemos suas informações pessoais em conformidade com a Lei Geral de Proteção de Dados (LGPD — Lei 13.709/2018).
                 </Typography>
 
                 <Divider sx={{ mb: 4 }} />
@@ -70,8 +74,8 @@ export default function Privacidade() {
                 <Divider sx={{ my: 4 }} />
 
                 <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-                    Para questões sobre privacidade: <strong>privacidade@solarhub.com.br</strong><br />
-                    SolarHub Commerce LTDA — CNPJ: 00.000.000/0001-00 — São Paulo, SP, Brasil
+                    Para questões sobre privacidade: <strong>{branding?.store_email || 'contato@example.com'}</strong><br />
+                    {storeName}{branding?.store_cnpj ? ` — CNPJ: ${branding.store_cnpj}` : ''}{branding?.store_address ? ` — ${branding.store_address}` : ''}
                 </Typography>
             </Container>
         </StorefrontLayout>

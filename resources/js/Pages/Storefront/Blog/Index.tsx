@@ -38,13 +38,13 @@ export default function BlogIndex({ posts, categories, filters }: Props) {
 
     return (
         <StorefrontLayout>
-            <Head title="Blog — SolarHub" />
+            <Head title="Blog" />
 
             {/* Hero */}
             <Box sx={{ bgcolor: 'primary.main', color: 'white', py: { xs: 6, md: 8 } }}>
                 <Container maxWidth="lg">
                     <Stack sx={{ alignItems: 'center', textAlign: 'center' }}>
-                        <Typography variant="h3" sx={{ fontWeight: 900, mb: 1 }}>Blog SolarHub</Typography>
+                        <Typography variant="h3" sx={{ fontWeight: 900, mb: 1 }}>Blog</Typography>
                         <Typography variant="h6" sx={{ opacity: 0.85, mb: 4, fontWeight: 400 }}>
                             Dicas, tutoriais e novidades sobre energia solar
                         </Typography>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\Auth\Services;
 
+use App\Domains\Settings\Services\SettingsService;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -11,7 +12,10 @@ use PragmaRX\Google2FA\Google2FA;
 
 final class TwoFactorService
 {
-    public function __construct(private readonly Google2FA $google2fa) {}
+    public function __construct(
+        private readonly Google2FA $google2fa,
+        private readonly SettingsService $settings,
+    ) {}
 
     public function generateSecret(): string
     {
@@ -21,7 +25,7 @@ final class TwoFactorService
     public function getQrCodeUrl(User $user, string $secret): string
     {
         return $this->google2fa->getQRCodeUrl(
-            company: config('app.name', 'SolarHub Commerce'),
+            company: $this->settings->get('store_name', config('app.name')),
             holder: $user->email,
             secret: $secret,
         );
@@ -30,7 +34,7 @@ final class TwoFactorService
     /** @return array<string> */
     public function generateRecoveryCodes(): array
     {
-        return Collection::times(8, fn () => Str::random(10) . '-' . Str::random(10))->all();
+        return Collection::times(8, fn () => Str::random(10).'-'.Str::random(10))->all();
     }
 
     public function enable(User $user, string $secret, string $code): bool
@@ -40,9 +44,9 @@ final class TwoFactorService
         }
 
         $user->update([
-            'two_factor_secret'         => encrypt($secret),
+            'two_factor_secret' => encrypt($secret),
             'two_factor_recovery_codes' => encrypt(json_encode($this->generateRecoveryCodes())),
-            'two_factor_confirmed_at'   => now(),
+            'two_factor_confirmed_at' => now(),
         ]);
 
         return true;
@@ -51,9 +55,9 @@ final class TwoFactorService
     public function disable(User $user): void
     {
         $user->update([
-            'two_factor_secret'         => null,
+            'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
-            'two_factor_confirmed_at'   => null,
+            'two_factor_confirmed_at' => null,
         ]);
 
         session()->forget('two_factor_confirmed');

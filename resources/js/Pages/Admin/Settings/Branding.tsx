@@ -226,11 +226,11 @@ export default function Branding({ branding }: Props) {
                                     <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Redes sociais</Typography>
                                     <Stack spacing={2}>
                                         {[
-                                            { field: 'social_instagram', label: 'Instagram', icon: <InstagramIcon sx={{ color: '#E1306C' }} />, placeholder: 'https://instagram.com/solarhub' },
-                                            { field: 'social_facebook', label: 'Facebook', icon: <FacebookIcon sx={{ color: '#1877F2' }} />, placeholder: 'https://facebook.com/solarhub' },
-                                            { field: 'social_youtube', label: 'YouTube', icon: <YouTubeIcon sx={{ color: '#FF0000' }} />, placeholder: 'https://youtube.com/@solarhub' },
+                                            { field: 'social_instagram', label: 'Instagram', icon: <InstagramIcon sx={{ color: '#E1306C' }} />, placeholder: 'https://instagram.com/minhaloja' },
+                                            { field: 'social_facebook', label: 'Facebook', icon: <FacebookIcon sx={{ color: '#1877F2' }} />, placeholder: 'https://facebook.com/minhaloja' },
+                                            { field: 'social_youtube', label: 'YouTube', icon: <YouTubeIcon sx={{ color: '#FF0000' }} />, placeholder: 'https://youtube.com/@minhaloja' },
                                             { field: 'social_whatsapp', label: 'WhatsApp (número)', icon: <WhatsAppIcon sx={{ color: '#25D366' }} />, placeholder: '5511999999999' },
-                                            { field: 'social_linkedin', label: 'LinkedIn', icon: <LinkedInIcon sx={{ color: '#0A66C2' }} />, placeholder: 'https://linkedin.com/company/solarhub' },
+                                            { field: 'social_linkedin', label: 'LinkedIn', icon: <LinkedInIcon sx={{ color: '#0A66C2' }} />, placeholder: 'https://linkedin.com/company/minhaloja' },
                                         ].map(({ field, label, icon, placeholder }) => (
                                             <TextField
                                                 key={field}

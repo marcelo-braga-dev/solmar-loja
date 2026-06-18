@@ -1,8 +1,9 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { Box, Button, Container, Stack, Typography } from '@mui/material';
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
 import HomeIcon from '@mui/icons-material/Home';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import type { SharedProps } from '@/Types/inertia';
 
 interface Props {
     status: number;
@@ -28,11 +29,13 @@ const ERROR_CONTENT: Record<number, { title: string; description: string; emoji:
     503: {
         emoji: '🔧',
         title: 'Em manutenção',
-        description: 'O SolarHub está temporariamente indisponível para manutenção. Voltaremos em breve!',
+        description: 'A loja está temporariamente indisponível para manutenção. Voltaremos em breve!',
     },
 };
 
 export default function Error({ status, message }: Props) {
+    const { branding } = usePage<SharedProps>().props;
+    const storeName = branding?.store_name || 'Minha Loja';
     const content = ERROR_CONTENT[status] ?? {
         emoji: '❌',
         title: `Erro ${status}`,
@@ -46,8 +49,14 @@ export default function Error({ status, message }: Props) {
             {/* Header simples */}
             <Box sx={{ bgcolor: 'primary.main', py: 2, px: 3 }}>
                 <Box component={Link} href="/" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, textDecoration: 'none' }}>
-                    <SolarPowerIcon sx={{ color: '#FFB300', fontSize: 28 }} />
-                    <Typography variant="h6" sx={{ color: 'white', fontWeight: 800 }}>SolarHub</Typography>
+                    {branding?.logo_url ? (
+                        <Box component="img" src={branding.logo_url} alt={storeName} sx={{ height: 32, maxWidth: 160, objectFit: 'contain' }} />
+                    ) : (
+                        <>
+                            <SolarPowerIcon sx={{ color: '#FFB300', fontSize: 28 }} />
+                            <Typography variant="h6" sx={{ color: 'white', fontWeight: 800 }}>{storeName}</Typography>
+                        </>
+                    )}
                 </Box>
             </Box>
 
@@ -130,7 +139,7 @@ export default function Error({ status, message }: Props) {
             {/* Footer simples */}
             <Box sx={{ py: 3, textAlign: 'center' }}>
                 <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                    © {new Date().getFullYear()} SolarHub Commerce. Todos os direitos reservados.
+                    © {new Date().getFullYear()} {storeName}. Todos os direitos reservados.
                 </Typography>
             </Box>
         </Box>

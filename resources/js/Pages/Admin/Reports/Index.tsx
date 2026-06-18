@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import {
     Alert, Box, Button, Grid, Paper, Stack, Tab, Table, TableBody,
     TableCell, TableContainer, TableHead, TableRow, Tabs, Typography,
@@ -14,6 +14,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { formatBRL } from '@/Lib/formatters';
 import type { PageProps } from '@inertiajs/react';
+import type { SharedProps } from '@/Types/inertia';
 import { useState } from 'react';
 
 interface DayRevenue { date: string; revenue: number; orders: number }
@@ -34,19 +35,18 @@ interface Props extends PageProps {
     dre: DreData;
 }
 
-function printReport(kpis: Props['kpis'], revenueByDay: DayRevenue[], topProducts: TopProduct[], dre: DreData, period: string) {
+function printReport(kpis: Props['kpis'], revenueByDay: DayRevenue[], topProducts: TopProduct[], dre: DreData, period: string, storeName: string) {
     const html = `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <title>Relatório de Vendas — SolarHub Commerce</title>
+  <title>Relatório de Vendas — ${storeName}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
     body { padding: 32px; color: #1A1A2E; font-size: 13px; }
     .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; border-bottom: 3px solid #0B5FFF; padding-bottom: 16px; }
     .logo { font-size: 22px; font-weight: 900; color: #0B5FFF; }
-    .logo span { color: #FFB300; }
     .period { font-size: 11px; color: #666; margin-top: 4px; }
     .title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
     .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
@@ -69,7 +69,7 @@ function printReport(kpis: Props['kpis'], revenueByDay: DayRevenue[], topProduct
 <body>
   <div class="header">
     <div>
-      <div class="logo">Solar<span>Hub</span> Commerce</div>
+      <div class="logo">${storeName}</div>
       <div class="period">Período: ${period} · Gerado em: ${new Date().toLocaleString('pt-BR')}</div>
     </div>
     <div>
@@ -141,7 +141,7 @@ function printReport(kpis: Props['kpis'], revenueByDay: DayRevenue[], topProduct
   </div>
 
   <div class="footer">
-    SolarHub Commerce · Relatório gerado automaticamente · Dados internos e confidenciais
+    ${storeName} · Relatório gerado automaticamente · Dados internos e confidenciais
   </div>
 </body>
 </html>`;
@@ -155,6 +155,8 @@ function printReport(kpis: Props['kpis'], revenueByDay: DayRevenue[], topProduct
 }
 
 export default function ReportsIndex({ period, kpis, revenueByDay, topProducts, dre }: Props) {
+    const { branding } = usePage<SharedProps>().props;
+    const storeName = branding?.store_name || 'Minha Loja';
     const [tab, setTab] = useState(0);
 
     const exportForm = useForm({
@@ -203,7 +205,7 @@ export default function ReportsIndex({ period, kpis, revenueByDay, topProducts, 
                     <Button
                         variant="outlined"
                         startIcon={<PictureAsPdfIcon />}
-                        onClick={() => printReport(kpis, revenueByDay, topProducts, dre, period)}
+                        onClick={() => printReport(kpis, revenueByDay, topProducts, dre, period, storeName)}
                         size="small"
                     >
                         Exportar PDF

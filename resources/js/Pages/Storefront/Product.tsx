@@ -133,7 +133,7 @@ export default function ProductPage({ product, relatedProducts, frequentlyBought
 
     return (
         <StorefrontLayout>
-            <Head title={`${product.meta_title ?? product.name} — SolarHub Commerce`} />
+            <Head title={product.meta_title ?? product.name} />
 
             <Container maxWidth="lg" sx={{ py: 3 }}>
                 {product.breadcrumbs && (

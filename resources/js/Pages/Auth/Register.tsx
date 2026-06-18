@@ -1,11 +1,13 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
     Box, Button, Card, CardContent, Checkbox,
     FormControlLabel, Stack, TextField, Typography,
 } from '@mui/material';
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
+import type { SharedProps } from '@/Types/inertia';
 
 export default function Register() {
+    const { branding } = usePage<SharedProps>().props;
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         email: '',
@@ -26,8 +28,14 @@ export default function Register() {
             <Box sx={{ width: '100%', maxWidth: 440 }}>
                 <Stack sx={{ alignItems: 'center', mb: 3 }}>
                     <Box component={Link} href="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none', color: 'inherit', mb: 2 }}>
-                        <SolarPowerIcon sx={{ color: 'secondary.main', fontSize: 36 }} />
-                        <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>SolarHub</Typography>
+                        {branding?.logo_url ? (
+                            <Box component="img" src={branding.logo_url} alt={branding.store_name} sx={{ height: 40, maxWidth: 180, objectFit: 'contain' }} />
+                        ) : (
+                            <>
+                                <SolarPowerIcon sx={{ color: 'secondary.main', fontSize: 36 }} />
+                                <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>{branding?.store_name || 'Minha Loja'}</Typography>
+                            </>
+                        )}
                     </Box>
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>Criar conta gratuita</Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>

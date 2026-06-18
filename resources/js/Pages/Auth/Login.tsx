@@ -1,10 +1,11 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import {
     Box, Button, Card, CardContent, Checkbox, Divider,
     FormControlLabel, Stack, TextField, Typography, Alert,
 } from '@mui/material';
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
 import type { PageProps } from '@inertiajs/react';
+import type { SharedProps } from '@/Types/inertia';
 
 interface Props extends PageProps {
     canResetPassword: boolean;
@@ -12,6 +13,7 @@ interface Props extends PageProps {
 }
 
 export default function Login({ canResetPassword, status }: Props) {
+    const { branding } = usePage<SharedProps>().props;
     const { data, setData, post, processing, errors } = useForm({
         email: '',
         password: '',
@@ -30,8 +32,14 @@ export default function Login({ canResetPassword, status }: Props) {
             <Box sx={{ width: '100%', maxWidth: 420 }}>
                 <Stack sx={{ alignItems: 'center', mb: 3 }}>
                     <Box component={Link} href="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none', color: 'inherit', mb: 2 }}>
-                        <SolarPowerIcon sx={{ color: 'secondary.main', fontSize: 36 }} />
-                        <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>SolarHub</Typography>
+                        {branding?.logo_url ? (
+                            <Box component="img" src={branding.logo_url} alt={branding.store_name} sx={{ height: 40, maxWidth: 180, objectFit: 'contain' }} />
+                        ) : (
+                            <>
+                                <SolarPowerIcon sx={{ color: 'secondary.main', fontSize: 36 }} />
+                                <Typography variant="h5" sx={{ fontWeight: 800, color: 'primary.main' }}>{branding?.store_name || 'Minha Loja'}</Typography>
+                            </>
+                        )}
                     </Box>
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>Entrar na sua conta</Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>

@@ -42,7 +42,7 @@ interface Props extends PageProps {
 export default function BlogPost({ post, related }: Props) {
     return (
         <StorefrontLayout>
-            <Head title={`${post.meta_title || post.title} — Blog SolarHub`}>
+            <Head title={`${post.meta_title || post.title} — Blog`}>
                 {post.meta_description && <meta name="description" content={post.meta_description} />}
             </Head>
 

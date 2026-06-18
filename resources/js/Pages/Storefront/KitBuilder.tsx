@@ -137,7 +137,7 @@ export default function KitBuilder({ panels }: Props) {
 
     return (
         <StorefrontLayout>
-            <Head title="Monte Seu Kit Solar — SolarHub Commerce" />
+            <Head title="Monte Seu Kit Solar" />
 
             <Box sx={{
                 background: 'linear-gradient(135deg, #0D1B3E 0%, #0B5FFF 100%)',

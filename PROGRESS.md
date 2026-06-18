@@ -323,6 +323,13 @@ Sincronização diária (e incremental de hora em hora) do catálogo de kits fot
 
 ## Extras — Design e UX
 
+### White-label — Nome e Logo Dinâmicos (Admin > Identidade Visual)
+- Removidas todas as menções fixas a "SolarHub" do código (storefront, admin, e-mails, notificações) — agora tudo lê `branding.store_name` / `branding.logo_url` via shared props do Inertia
+- `resources/js/app.tsx`: título global do Inertia (`createInertiaApp({ title })`) passou a usar o nome configurado pelo admin (lido do `data-page` inicial e atualizado a cada navegação), então cada página só define o título específico (ex.: `<Head title="Checkout" />`) e o sufixo com o nome da loja é acrescentado automaticamente
+- Logo: onde havia texto fixo "SolarHub" como marca (header, drawer mobile, login/registro/recuperar senha, página de erro, painel admin, portal do consultor), passou a exibir `branding.logo_url`/`logo_dark_url` quando configurado, com fallback para ícone + nome da loja
+- Backend: `SettingsService->get('store_name', config('app.name'))` substituiu literais "SolarHub" em e-mails (newsletter, carrinho abandonado, estoque disponível), 2FA (QR code), contato, tickets de suporte e na documentação JSON da API de integração
+- `database/seeders/SettingsSeeder.php` mantém "SolarHub Commerce" apenas como valor inicial padrão — o admin troca em **Admin > Identidade Visual**
+
 ### AdminLayout — Sidebar Redesenhada
 - Gradiente `#0D1B3E → #111827`
 - Itens ativos: borda azul esquerda 3px + fundo `rgba(11,95,255,0.2)`

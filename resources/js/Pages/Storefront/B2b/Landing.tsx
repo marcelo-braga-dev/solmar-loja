@@ -1,4 +1,4 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { type ElementType } from 'react';
 import { Box, Container, Typography, Button, Grid, Paper, Stack, Chip, Avatar, alpha } from '@mui/material';
 import VerifiedIcon from '@mui/icons-material/Verified';
@@ -10,6 +10,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import BusinessIcon from '@mui/icons-material/Business';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
 import type { PageProps } from '@inertiajs/react';
+import type { SharedProps } from '@/Types/inertia';
 
 interface UserCompany {
     razao_social: string;
@@ -36,9 +37,12 @@ const TYPES = [
 ];
 
 export default function B2bLanding({ user_company }: Props) {
+    const { branding } = usePage<SharedProps>().props;
+    const storeName = branding?.store_name || 'Nossa loja';
+
     return (
         <StorefrontLayout>
-            <Head title="Portal B2B — SolarHub Commerce" />
+            <Head title="Portal B2B" />
 
             {/* Hero */}
             <Box sx={{ background: 'linear-gradient(135deg, #0D1B3E 0%, #0B3D91 40%, #0B5FFF 100%)', py: { xs: 8, md: 12 }, position: 'relative', overflow: 'hidden' }}>
@@ -89,7 +93,7 @@ export default function B2bLanding({ user_company }: Props) {
             {/* Benefícios */}
             <Container maxWidth="lg" sx={{ py: 8 }}>
                 <Typography variant="h3" sx={{ fontWeight: 800, textAlign: 'center', mb: 1, letterSpacing: '-0.5px' }}>Por que ser parceiro B2B?</Typography>
-                <Typography sx={{ color: 'text.secondary', textAlign: 'center', mb: 6 }}>Vantagens exclusivas para quem faz parte do ecossistema SolarHub</Typography>
+                <Typography sx={{ color: 'text.secondary', textAlign: 'center', mb: 6 }}>Vantagens exclusivas para quem faz parte do ecossistema {storeName}</Typography>
                 <Grid container spacing={3}>
                     {BENEFITS.map((b) => (
                         <Grid key={b.title} size={{ xs: 12, sm: 6 }}>

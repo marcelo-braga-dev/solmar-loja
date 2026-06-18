@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { useState, useRef } from 'react';
 import {
     Box, Grid, Paper, Typography, Stack, Chip, Button, Divider,
@@ -21,6 +21,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@inertiajs/react';
+import type { SharedProps } from '@/Types/inertia';
 
 interface Config {
     base_url: string;
@@ -147,6 +148,8 @@ function JsonViewer({ data, depth = 0 }: { data: unknown; depth?: number }) {
 }
 
 export default function IntegrationIndex({ config, syncLogs, stats, schema, appsolarConfig, appsolarSyncLogs, appsolarStats, envConfig }: Props) {
+    const { branding } = usePage<SharedProps>().props;
+    const storeName = branding?.store_name || 'a plataforma';
     const [tab, setTab] = useState(0);
     const [syncing, setSyncing] = useState(false);
     const [testing, setTesting] = useState(false);
@@ -540,9 +543,9 @@ export default function IntegrationIndex({ config, syncLogs, stats, schema, apps
                         {/* Seções do schema */}
                         {[
                             { key: 'endpoints',          title: '📡 Endpoints da API', description: 'Rotas HTTP que a plataforma vai consumir' },
-                            { key: 'field_mapping',      title: '🔗 Mapeamento de Campos', description: 'Como os campos externos são mapeados para o SolarHub' },
+                            { key: 'field_mapping',      title: '🔗 Mapeamento de Campos', description: `Como os campos externos são mapeados para ${storeName}` },
                             { key: 'example_response',   title: '📦 Exemplo de Resposta', description: 'Exemplo real do JSON retornado pelo endpoint /products' },
-                            { key: 'webhook_optional',   title: '🔔 Webhook (opcional)', description: 'O distribuidor pode notificar o SolarHub sobre atualizações' },
+                            { key: 'webhook_optional',   title: '🔔 Webhook (opcional)', description: `O distribuidor pode notificar ${storeName} sobre atualizações` },
                             { key: 'auth',               title: '🔑 Autenticação', description: 'Como a autenticação deve ser feita' },
                         ].map((section) => (
                             <Accordion key={section.key} defaultExpanded={section.key === 'example_response'} elevation={0} sx={{ border: '1px solid rgba(0,0,0,0.07)', borderRadius: '12px !important', mb: 1.5, '&:before': { display: 'none' } }}>
@@ -571,14 +574,14 @@ export default function IntegrationIndex({ config, syncLogs, stats, schema, apps
                     <Box sx={{ p: 3 }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>Mapeamento de Campos</Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-                            Como cada campo da API externa é interpretado e armazenado na plataforma SolarHub Commerce
+                            Como cada campo da API externa é interpretado e armazenado na plataforma {storeName}
                         </Typography>
 
                         <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid rgba(0,0,0,0.07)', borderRadius: 2 }}>
                             <Table size="small">
                                 <TableHead>
                                     <TableRow sx={{ bgcolor: '#FAFAFA' }}>
-                                        {['Campo Externo (API)', 'Campo Interno (SolarHub)', 'Obrigatório', 'Tipo', 'Conversão'].map((h) => (
+                                        {['Campo Externo (API)', 'Campo Interno', 'Obrigatório', 'Tipo', 'Conversão'].map((h) => (
                                             <TableCell key={h} sx={{ fontWeight: 700, fontSize: 12, color: 'text.secondary' }}>{h}</TableCell>
                                         ))}
                                     </TableRow>

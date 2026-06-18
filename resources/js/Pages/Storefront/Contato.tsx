@@ -38,7 +38,7 @@ export default function Contato({ success }: Props) {
 
     return (
         <StorefrontLayout>
-            <Head title="Contato — SolarHub" />
+            <Head title="Contato" />
 
             <Box sx={{ bgcolor: 'primary.main', color: 'white', py: { xs: 6, md: 8 }, textAlign: 'center' }}>
                 <Container maxWidth="md">

@@ -5,14 +5,16 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
+        @php($storeName = app(\App\Domains\Settings\Services\SettingsService::class)->get('store_name', config('app.name')))
+
         {{-- Inertia controla o title via Head --}}
-        <title inertia>{{ config('app.name', 'SolarHub Commerce') }}</title>
+        <title inertia>{{ $storeName }}</title>
 
         {{-- SEO defaults (sobrescritos por cada página via Inertia Head) --}}
         <meta name="description" content="A maior plataforma de e-commerce de energia solar do Brasil. Painéis solares, inversores, kits fotovoltaicos e muito mais.">
         <meta name="robots" content="index, follow">
         <meta property="og:type" content="website">
-        <meta property="og:site_name" content="{{ config('app.name') }}">
+        <meta property="og:site_name" content="{{ $storeName }}">
         <meta property="og:locale" content="pt_BR">
 
         {{-- Favicon (configurável via Admin > Identidade Visual) --}}

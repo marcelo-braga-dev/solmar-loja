@@ -9,6 +9,7 @@ use App\Domains\Catalog\Models\Brand;
 use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -27,15 +28,15 @@ final class ProductImportController extends Controller
             ->limit(10)
             ->get()
             ->map(fn ($log) => [
-                'id'            => $log->id,
-                'status'        => $log->status,
-                'total_items'   => $log->total_items,
+                'id' => $log->id,
+                'status' => $log->status,
+                'total_items' => $log->total_items,
                 'created_items' => $log->created_items,
                 'updated_items' => $log->updated_items,
-                'error_items'   => $log->error_items,
-                'errors'        => $log->errors ? json_decode($log->errors, true) : null,
-                'started_at'    => $log->started_at
-                    ? \Carbon\Carbon::parse($log->started_at)->format('d/m/Y H:i')
+                'error_items' => $log->error_items,
+                'errors' => $log->errors ? json_decode($log->errors, true) : null,
+                'started_at' => $log->started_at
+                    ? Carbon::parse($log->started_at)->format('d/m/Y H:i')
                     : null,
             ]);
 
@@ -78,15 +79,15 @@ final class ProductImportController extends Controller
             '27800',
             '50',
             '1',
-            'Painel Solar 550W | SolarHub',
+            'Painel Solar 550W Monocristalino',
             'Compre painel solar 550W monocristalino com frete grátis.',
         ];
 
-        $csv = implode(',', array_map(fn ($h) => "\"{$h}\"", $headers)) . "\n";
-        $csv .= implode(',', array_map(fn ($v) => "\"{$v}\"", $example)) . "\n";
+        $csv = implode(',', array_map(fn ($h) => "\"{$h}\"", $headers))."\n";
+        $csv .= implode(',', array_map(fn ($v) => "\"{$v}\"", $example))."\n";
 
         return response($csv, 200, [
-            'Content-Type'        => 'text/csv; charset=utf-8',
+            'Content-Type' => 'text/csv; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="template-importacao-produtos.csv"',
         ]);
     }
@@ -94,7 +95,7 @@ final class ProductImportController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'csv_file'    => ['required', 'file', 'mimes:csv,txt', 'max:10240'],
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:10240'],
             'update_mode' => ['required', 'in:create_only,update_existing,create_and_update'],
         ]);
 
@@ -102,9 +103,9 @@ final class ProductImportController extends Controller
         $mode = $request->string('update_mode')->value();
 
         $logId = DB::table('sync_logs')->insertGetId([
-            'source'     => 'csv_import',
+            'source' => 'csv_import',
             'started_at' => now(),
-            'status'     => 'running',
+            'status' => 'running',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -134,7 +135,7 @@ final class ProductImportController extends Controller
                 } catch (\Throwable $e) {
                     $results['errors']++;
                     $results['error_list'][] = [
-                        'row'   => $results['total'],
+                        'row' => $results['total'],
                         'error' => $e->getMessage(),
                     ];
                 }
@@ -143,28 +144,28 @@ final class ProductImportController extends Controller
             fclose($handle);
 
             DB::table('sync_logs')->where('id', $logId)->update([
-                'status'        => $results['errors'] > 0 ? 'partial' : 'success',
-                'finished_at'   => now(),
-                'total_items'   => $results['total'],
+                'status' => $results['errors'] > 0 ? 'partial' : 'success',
+                'finished_at' => now(),
+                'total_items' => $results['total'],
                 'created_items' => $results['created'],
                 'updated_items' => $results['updated'],
-                'error_items'   => $results['errors'],
-                'errors'        => $results['errors'] > 0 ? json_encode($results['error_list']) : null,
-                'updated_at'    => now(),
+                'error_items' => $results['errors'],
+                'errors' => $results['errors'] > 0 ? json_encode($results['error_list']) : null,
+                'updated_at' => now(),
             ]);
         } catch (\Throwable $e) {
             DB::table('sync_logs')->where('id', $logId)->update([
-                'status'      => 'failed',
+                'status' => 'failed',
                 'finished_at' => now(),
-                'errors'      => json_encode(['fatal' => $e->getMessage()]),
-                'updated_at'  => now(),
+                'errors' => json_encode(['fatal' => $e->getMessage()]),
+                'updated_at' => now(),
             ]);
 
-            return back()->with('error', 'Erro ao processar o CSV: ' . $e->getMessage());
+            return back()->with('error', 'Erro ao processar o CSV: '.$e->getMessage());
         }
 
         $msg = "Importação concluída: {$results['total']} linhas — "
-             . "{$results['created']} criados, {$results['updated']} atualizados, {$results['errors']} erros.";
+             ."{$results['created']} criados, {$results['updated']} atualizados, {$results['errors']} erros.";
 
         return back()->with('success', $msg);
     }
@@ -172,7 +173,7 @@ final class ProductImportController extends Controller
     /** @param array<string, string> $data */
     private function processRow(array $data, string $mode, array &$results): void
     {
-        $sku  = trim($data['sku'] ?? '');
+        $sku = trim($data['sku'] ?? '');
         $name = trim($data['nome'] ?? $data['name'] ?? '');
 
         if ($sku === '' || $name === '') {
@@ -188,43 +189,43 @@ final class ProductImportController extends Controller
             : null;
 
         $statusRaw = trim($data['status'] ?? 'draft');
-        $status    = match ($statusRaw) {
+        $status = match ($statusRaw) {
             'published', 'publicado', '1' => ProductStatus::Published,
-            'archived', 'arquivado'       => ProductStatus::Archived,
-            default                        => ProductStatus::Draft,
+            'archived', 'arquivado' => ProductStatus::Archived,
+            default => ProductStatus::Draft,
         };
 
         // Resolver marca
         $brandId = null;
         $brandName = trim($data['marca'] ?? $data['brand'] ?? '');
         if ($brandName !== '') {
-            $brand   = Brand::firstOrCreate(['slug' => Str::slug($brandName)], ['name' => $brandName, 'is_active' => true]);
+            $brand = Brand::firstOrCreate(['slug' => Str::slug($brandName)], ['name' => $brandName, 'is_active' => true]);
             $brandId = $brand->id;
         }
 
         // Resolver categoria
         $categoryId = null;
-        $catSlug    = trim($data['categoria_slug'] ?? $data['category_slug'] ?? '');
+        $catSlug = trim($data['categoria_slug'] ?? $data['category_slug'] ?? '');
         if ($catSlug !== '') {
-            $category   = Category::where('slug', $catSlug)->first();
+            $category = Category::where('slug', $catSlug)->first();
             $categoryId = $category?->id;
         }
 
         $attrs = [
-            'name'                   => $name,
-            'slug'                   => Str::slug($name),
-            'short_description'      => trim($data['descricao_curta'] ?? ''),
-            'description'            => trim($data['descricao_completa'] ?? ''),
-            'price_cents'            => $priceCents,
+            'name' => $name,
+            'slug' => Str::slug($name),
+            'short_description' => trim($data['descricao_curta'] ?? ''),
+            'description' => trim($data['descricao_completa'] ?? ''),
+            'price_cents' => $priceCents,
             'compare_at_price_cents' => $compareCents,
-            'cost_cents'             => $costCents,
-            'status'                 => $status,
-            'brand_id'               => $brandId,
-            'weight_grams'           => isset($data['peso_gramas']) && $data['peso_gramas'] !== '' ? (int) $data['peso_gramas'] : null,
-            'featured'               => in_array($data['destaque'] ?? '0', ['1', 'true', 'sim'], true),
-            'meta_title'             => trim($data['meta_titulo'] ?? ''),
-            'meta_description'       => trim($data['meta_descricao'] ?? ''),
-            'published_at'           => $status === ProductStatus::Published ? now() : null,
+            'cost_cents' => $costCents,
+            'status' => $status,
+            'brand_id' => $brandId,
+            'weight_grams' => isset($data['peso_gramas']) && $data['peso_gramas'] !== '' ? (int) $data['peso_gramas'] : null,
+            'featured' => in_array($data['destaque'] ?? '0', ['1', 'true', 'sim'], true),
+            'meta_title' => trim($data['meta_titulo'] ?? ''),
+            'meta_description' => trim($data['meta_descricao'] ?? ''),
+            'published_at' => $status === ProductStatus::Published ? now() : null,
         ];
 
         $existing = Product::where('sku', $sku)->first();
@@ -252,13 +253,13 @@ final class ProductImportController extends Controller
             if ($stock > 0) {
                 $warehouseId = DB::table('warehouses')->value('id') ?? 1;
                 DB::table('stocks')->insertOrIgnore([
-                    'product_id'         => $product->id,
-                    'variant_id'         => null,
-                    'warehouse_id'       => $warehouseId,
+                    'product_id' => $product->id,
+                    'variant_id' => null,
+                    'warehouse_id' => $warehouseId,
                     'quantity_available' => $stock,
-                    'quantity_reserved'  => 0,
-                    'created_at'         => now(),
-                    'updated_at'         => now(),
+                    'quantity_reserved' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
 

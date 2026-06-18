@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Mail;
 
 use App\Domains\Marketing\Models\NewsletterSubscriber;
+use App\Domains\Settings\Services\SettingsService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -21,8 +22,10 @@ final class NewsletterConfirmation extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
+        $storeName = app(SettingsService::class)->get('store_name', config('app.name'));
+
         return new Envelope(
-            subject: 'Confirme sua inscrição na newsletter — SolarHub',
+            subject: "Confirme sua inscrição na newsletter — {$storeName}",
         );
     }
 
@@ -31,9 +34,10 @@ final class NewsletterConfirmation extends Mailable implements ShouldQueue
         return new Content(
             view: 'emails.newsletter.confirmation',
             with: [
-                'confirmUrl'     => route('newsletter.confirm', $this->subscriber->token),
+                'confirmUrl' => route('newsletter.confirm', $this->subscriber->token),
                 'unsubscribeUrl' => route('newsletter.unsubscribe', $this->subscriber->token),
                 'subscriberName' => $this->subscriber->name ?? 'Assinante',
+                'storeName' => app(SettingsService::class)->get('store_name', config('app.name')),
             ],
         );
     }

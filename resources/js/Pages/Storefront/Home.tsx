@@ -130,7 +130,7 @@ export default function Home({ featuredProducts, onSaleProducts, generatorProduc
 
     return (
         <StorefrontLayout>
-            <Head title="Início — SolarHub Commerce" />
+            <Head title="Início" />
 
             {/* ── HERO ──────────────────────────────────────────────────────── */}
             <Box sx={{
@@ -411,12 +411,12 @@ export default function Home({ featuredProducts, onSaleProducts, generatorProduc
                 </Container>
             </Box>
 
-            {/* ── POR QUE COMPRAR COM A SOLARHUB ───────────────────────────── */}
+            {/* ── POR QUE COMPRAR COM A LOJA ───────────────────────────── */}
             <Reveal>
                 <Box sx={{ py: { xs: 7, md: 9 }, bgcolor: 'white' }}>
                     <Container maxWidth="lg">
                         <Box sx={{ textAlign: 'center', mb: 5 }}>
-                            <Chip label="Por que a SolarHub" color="primary" size="small" sx={{ mb: 1.5, fontWeight: 600 }} />
+                            <Chip label={`Por que a ${branding?.store_name || 'nossa loja'}`} color="primary" size="small" sx={{ mb: 1.5, fontWeight: 600 }} />
                             <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.5px', fontSize: { xs: '1.8rem', md: '2.4rem' } }}>
                                 Tecnologia, segurança e gente especialista
                             </Typography>

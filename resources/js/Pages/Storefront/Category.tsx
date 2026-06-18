@@ -244,7 +244,7 @@ export default function CategoryPage({ category, products, brands, facets, filte
 
     return (
         <StorefrontLayout>
-            <Head title={`${category.name} — SolarHub Commerce`} />
+            <Head title={category.name} />
 
             <Container maxWidth="lg">
                 {category.breadcrumbs && <Breadcrumb crumbs={category.breadcrumbs as { name: string; slug?: string }[]} />}

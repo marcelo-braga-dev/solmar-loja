@@ -1,4 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import type { SharedProps } from '@/Types/inertia';
 import { type ElementType, useState } from 'react';
 import {
     Box, Grid, Paper, Typography, Stack, Chip, Avatar,
@@ -189,6 +190,7 @@ function exportCSV(data: TopProduct[], filename: string) {
 }
 
 export default function Dashboard({ stats, revenueChart, customerChart, revenueByCategory, topProducts, recentOrders }: Props) {
+    const { branding } = usePage<SharedProps>().props;
     const [chartTab, setChartTab] = useState(0);
     const totalOrdersByStatus = Object.values(stats.orders_by_status).reduce((a, b) => a + b, 0);
 
@@ -211,7 +213,7 @@ export default function Dashboard({ stats, revenueChart, customerChart, revenueB
                             <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 500 }}>{getGreeting()}!</Typography>
                         </Stack>
                         <Typography variant="h5" sx={{ color: 'white', fontWeight: 800, mb: 0.5, lineHeight: 1.2 }}>
-                            Painel SolarHub Commerce
+                            Painel {branding?.store_name || 'Minha Loja'}
                         </Typography>
                         <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: 13 }}>
                             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}

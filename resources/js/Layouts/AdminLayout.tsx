@@ -210,7 +210,7 @@ export default function AdminLayout({ children, title = 'Admin', breadcrumbs }: 
                     )}
                     <Box>
                         <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'white', lineHeight: 1, letterSpacing: '-0.3px' }}>
-                            {branding?.store_name || 'SolarHub'}
+                            {branding?.store_name || 'Minha Loja'}
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase' }}>
                             Admin Panel

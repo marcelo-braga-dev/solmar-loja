@@ -5,7 +5,17 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useState, useMemo, useEffect } from 'react';
 
-const appName = import.meta.env.VITE_APP_NAME || 'SolarHub Commerce';
+function readInitialStoreName(): string | undefined {
+    try {
+        const el = document.getElementById('app');
+        const page = JSON.parse(el?.dataset.page ?? '{}');
+        return page?.props?.branding?.store_name || undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+let appName = readInitialStoreName() || import.meta.env.VITE_APP_NAME || 'Minha Loja';
 
 // ─── Helpers de cor ───────────────────────────────────────────────────────────
 
@@ -102,6 +112,7 @@ function InertiaApp({ initialPrimary, initialSecondary, App, props }: BrandingPr
             const b = (event.detail.page.props as any)?.branding;
             if (isValidHex(b?.primary_color))   setPrimary(b.primary_color);
             if (isValidHex(b?.secondary_color))  setSecondary(b.secondary_color);
+            if (b?.store_name) appName = b.store_name;
         });
         return remove;
     }, []);

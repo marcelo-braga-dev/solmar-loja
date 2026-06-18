@@ -88,7 +88,7 @@ export default function Compare({ products }: Props) {
 
     return (
         <StorefrontLayout>
-            <Head title={`Comparar ${products.length} Produtos — SolarHub Commerce`} />
+            <Head title={`Comparar ${products.length} Produtos`} />
 
             <Container maxWidth="lg" sx={{ py: 4 }}>
                 <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>

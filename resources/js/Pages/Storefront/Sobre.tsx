@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
     Box, Container, Divider, Grid, Stack, Typography, Paper,
 } from '@mui/material';
@@ -7,6 +7,7 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
+import type { SharedProps } from '@/Types/inertia';
 
 const VALORES = [
     { icon: <VerifiedIcon sx={{ fontSize: 40, color: 'primary.main' }} />, titulo: 'Qualidade garantida', desc: 'Trabalhamos apenas com marcas homologadas pelo INMETRO e com garantia de fábrica.' },
@@ -22,9 +23,12 @@ const NUMEROS = [
 ];
 
 export default function Sobre() {
+    const { branding } = usePage<SharedProps>().props;
+    const storeName = branding?.store_name || 'Nossa loja';
+
     return (
         <StorefrontLayout>
-            <Head title="Sobre nós — SolarHub" />
+            <Head title="Sobre nós" />
 
             {/* Hero */}
             <Box sx={{ bgcolor: 'primary.main', color: 'white', py: { xs: 8, md: 12 }, textAlign: 'center' }}>
@@ -32,7 +36,7 @@ export default function Sobre() {
                     <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
                         <SolarPowerIcon sx={{ fontSize: 64, color: 'secondary.main' }} />
                     </Box>
-                    <Typography variant="h2" sx={{ fontWeight: 900, mb: 2 }}>Sobre o SolarHub</Typography>
+                    <Typography variant="h2" sx={{ fontWeight: 900, mb: 2 }}>Sobre {storeName}</Typography>
                     <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, maxWidth: 600, mx: 'auto' }}>
                         Somos a maior plataforma de e-commerce especializada em energia solar e mobilidade elétrica do Brasil.
                     </Typography>
@@ -65,7 +69,7 @@ export default function Sobre() {
                 <Divider sx={{ mb: 6 }} />
 
                 {/* Valores */}
-                <Typography variant="h4" sx={{ fontWeight: 800, mb: 4, textAlign: 'center' }}>Por que escolher o SolarHub?</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, mb: 4, textAlign: 'center' }}>Por que escolher {storeName}?</Typography>
                 <Grid container spacing={3}>
                     {VALORES.map((v) => (
                         <Grid key={v.titulo} size={{ xs: 12, md: 4 }}>
@@ -84,7 +88,7 @@ export default function Sobre() {
                 <Stack spacing={3}>
                     <Typography variant="h4" sx={{ fontWeight: 800 }}>Nossa história</Typography>
                     <Typography variant="body1" sx={{ color: 'text.secondary', lineHeight: 1.8 }}>
-                        O SolarHub nasceu da paixão por energia renovável e da frustração com a dificuldade de
+                        {storeName} nasceu da paixão por energia renovável e da frustração com a dificuldade de
                         encontrar produtos de qualidade a preços justos no mercado brasileiro. Fundado por
                         engenheiros eletricistas e especialistas em energia solar, começamos como um pequeno
                         distribuidor regional e crescemos para nos tornar referência nacional no segmento.

@@ -101,14 +101,9 @@ export default function StorefrontLayout({ children }: Props) {
                                 ) : (
                                     <>
                                         <SolarPowerIcon sx={{ color: 'secondary.main', fontSize: 32 }} />
-                                        <Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1, color: 'primary.main' }}>
-                                                {branding?.store_name || 'SolarHub'}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
-                                                Commerce
-                                            </Typography>
-                                        </Box>
+                                        <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1, color: 'primary.main' }}>
+                                            {branding?.store_name || 'Minha Loja'}
+                                        </Typography>
                                     </>
                                 )}
                             </Box>
@@ -187,7 +182,7 @@ export default function StorefrontLayout({ children }: Props) {
                 <Box sx={{ width: 280 }}>
                     <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
                         <SolarPowerIcon sx={{ color: 'secondary.main' }} />
-                        <Typography variant="h6" sx={{ fontWeight: 800 }}>SolarHub</Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 800 }}>{branding?.store_name || 'Minha Loja'}</Typography>
                     </Box>
                     <List>
                         {[{ label: 'Início', href: '/' }, ...(mainMenu ?? [])].map((item) => (
@@ -294,7 +289,7 @@ export default function StorefrontLayout({ children }: Props) {
                                 ) : (
                                     <>
                                         <SolarPowerIcon sx={{ color: 'secondary.main', fontSize: 28 }} />
-                                        <Typography variant="h6" sx={{ fontWeight: 800 }}>{branding?.store_name || 'SolarHub Commerce'}</Typography>
+                                        <Typography variant="h6" sx={{ fontWeight: 800 }}>{branding?.store_name || 'Minha Loja'}</Typography>
                                     </>
                                 )}
                             </Box>
@@ -405,7 +400,7 @@ export default function StorefrontLayout({ children }: Props) {
                         <Typography variant="caption" sx={{ color: 'grey.500' }}>
                             {branding?.footer_text
                                 ? branding.footer_text
-                                : `© ${new Date().getFullYear()} ${branding?.store_name || 'SolarHub Commerce'}. Todos os direitos reservados.`}
+                                : `© ${new Date().getFullYear()} ${branding?.store_name || 'Minha Loja'}. Todos os direitos reservados.`}
                         </Typography>
                         {branding?.store_cnpj && (
                             <Typography variant="caption" sx={{ color: 'grey.500' }}>

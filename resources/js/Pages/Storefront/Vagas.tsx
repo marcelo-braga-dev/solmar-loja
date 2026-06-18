@@ -5,7 +5,7 @@ import StorefrontLayout from '@/Layouts/StorefrontLayout';
 export default function Vagas() {
     return (
         <StorefrontLayout>
-            <Head title="Trabalhe Conosco — SolarHub" />
+            <Head title="Trabalhe Conosco" />
 
             <Box sx={{ bgcolor: 'primary.main', color: 'white', py: { xs: 6, md: 8 }, textAlign: 'center' }}>
                 <Container maxWidth="md">

@@ -34,15 +34,15 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 const PLACEHOLDERS: Record<string, string> = {
-    store_name:              'Ex.: SolarHub Commerce',
-    store_email:             'Ex.: contato@solarhub.com.br',
+    store_name:              'Ex.: Minha Loja Solar',
+    store_email:             'Ex.: contato@minhaloja.com.br',
     store_phone:             'Ex.: (11) 3000-0000',
     store_cnpj:              'Ex.: 00.000.000/0001-00',
     store_address:           'Ex.: Rua das Flores, 123 — São Paulo, SP',
     store_tagline:           'Ex.: Energia solar para todos',
     store_description:       'Breve descrição que aparece no rodapé e SEO',
     footer_text:             'Ex.: Todos os direitos reservados.',
-    meta_title:              'Ex.: SolarHub — Energia Solar no Brasil',
+    meta_title:              'Ex.: Minha Loja — Energia Solar no Brasil',
     meta_description:        'Descrição padrão para motores de busca (até 160 caracteres)',
     google_analytics_id:     'Ex.: G-XXXXXXXXXX',
     free_shipping_min_cents: 'Valor em centavos (Ex.: 20000 = R$ 200,00)',

@@ -155,7 +155,7 @@ export default function Checkout({ cart, addresses }: Props) {
 
     return (
         <StorefrontLayout>
-            <Head title="Checkout — SolarHub Commerce" />
+            <Head title="Checkout" />
             <Container maxWidth="lg" sx={{ py: 4 }}>
                 <Typography variant="h4" sx={{ fontWeight: 800, mb: 3 }}>Finalizar Compra</Typography>
 

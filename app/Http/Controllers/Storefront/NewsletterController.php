@@ -17,7 +17,7 @@ final class NewsletterController extends Controller
     {
         $request->validate([
             'email' => ['required', 'email', 'max:255'],
-            'name'  => ['nullable', 'string', 'max:100'],
+            'name' => ['nullable', 'string', 'max:100'],
         ]);
 
         $this->newsletterService->subscribe(
@@ -34,7 +34,7 @@ final class NewsletterController extends Controller
             return redirect()->route('home')->with('error', 'Link inválido ou já confirmado.');
         }
 
-        return redirect()->route('home')->with('success', 'Inscrição confirmada! Bem-vindo(a) à newsletter SolarHub.');
+        return redirect()->route('home')->with('success', 'Inscrição confirmada! Bem-vindo(a) à nossa newsletter.');
     }
 
     public function unsubscribe(string $token): RedirectResponse

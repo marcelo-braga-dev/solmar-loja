@@ -30,7 +30,7 @@ const FAQS = [
 export default function Ajuda() {
     return (
         <StorefrontLayout>
-            <Head title="Central de Ajuda — SolarHub" />
+            <Head title="Central de Ajuda" />
 
             <Box sx={{ bgcolor: 'primary.main', color: 'white', py: { xs: 6, md: 8 }, textAlign: 'center' }}>
                 <Container maxWidth="md">

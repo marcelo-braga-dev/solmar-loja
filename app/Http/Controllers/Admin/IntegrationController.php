@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Domains\Integrations\Services\AppSolarProductSyncService;
 use App\Domains\Inventory\Contracts\ErpClientInterface;
 use App\Domains\Inventory\Services\InventorySyncService;
+use App\Domains\Settings\Services\SettingsService;
 use App\Http\Controllers\Controller;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -23,6 +25,7 @@ final class IntegrationController extends Controller
         private readonly InventorySyncService $syncService,
         private readonly ErpClientInterface $erpClient,
         private readonly AppSolarProductSyncService $appSolarSyncService,
+        private readonly SettingsService $settings,
     ) {}
 
     public function index(): Response
@@ -217,21 +220,24 @@ final class IntegrationController extends Controller
     public function downloadSchema(): \Symfony\Component\HttpFoundation\Response
     {
         $schema = $this->getApiSchema();
+        $slug = Str::slug($this->settings->get('store_name', config('app.name')));
 
         return response()->json($schema, 200, [
             'Content-Type' => 'application/json',
-            'Content-Disposition' => 'attachment; filename="solarhub-api-schema.json"',
+            'Content-Disposition' => "attachment; filename=\"{$slug}-api-schema.json\"",
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     }
 
     /** @return array<string, mixed> */
     private function getApiSchema(): array
     {
+        $storeName = $this->settings->get('store_name', config('app.name'));
+
         return [
             '$schema' => 'https://json-schema.org/draft/2020-12/schema',
-            'title' => 'SolarHub Commerce — API de Integração de Produtos',
+            'title' => "{$storeName} — API de Integração de Produtos",
             'version' => '1.0.0',
-            'description' => 'Schema JSON esperado pela plataforma SolarHub para importação de produtos via API REST. Endpoint configurado em ERP_BASE_URL.',
+            'description' => "Schema JSON esperado pela plataforma {$storeName} para importação de produtos via API REST. Endpoint configurado em ERP_BASE_URL.",
             'base_url' => config('services.erp.base_url', 'https://api.seu-distribuidor.com.br'),
             'auth' => [
                 'type' => 'Bearer Token',
@@ -296,7 +302,7 @@ final class IntegrationController extends Controller
                 ],
             ],
             'field_mapping' => [
-                '_description' => 'Mapeamento entre campos da API externa e campos da plataforma SolarHub',
+                '_description' => "Mapeamento entre campos da API externa e campos da plataforma {$storeName}",
                 'campos' => [
                     ['external' => 'id / codigo / sku',          'internal' => 'external_id', 'required' => true,  'type' => 'string'],
                     ['external' => 'sku / codigo / part_number',  'internal' => 'sku',         'required' => true,  'type' => 'string'],

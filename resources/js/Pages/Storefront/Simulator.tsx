@@ -47,7 +47,7 @@ const STATES = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT'
 const STEPS = ['Consumo', 'Localização', 'Resultado'];
 
 function generateProposalPDF(result: SimulatorResult, branding: { store_name?: string; store_email?: string; store_phone?: string }) {
-    const storeName = branding?.store_name ?? 'SolarHub Commerce';
+    const storeName = branding?.store_name ?? 'Nossa loja';
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -186,7 +186,7 @@ export default function Simulator(_props: PageProps) {
 
     return (
         <StorefrontLayout>
-            <Head title="Simulador Solar — SolarHub Commerce" />
+            <Head title="Simulador Solar" />
 
             {/* Hero */}
             <Box sx={{ background: 'linear-gradient(135deg, #0B5FFF 0%, #0040CC 100%)', color: 'white', py: 8 }}>
