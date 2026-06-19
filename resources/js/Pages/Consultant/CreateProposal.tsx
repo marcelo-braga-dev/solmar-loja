@@ -23,7 +23,32 @@ interface ProposalItemForm {
     discount_percent: number;
 }
 
-interface Props extends PageProps {}
+interface ExistingProposal {
+    uuid: string;
+    title: string;
+    customer_name: string;
+    customer_email: string | null;
+    customer_phone: string | null;
+    customer_city: string | null;
+    customer_state: string | null;
+    notes: string | null;
+    valid_until: string | null;
+    discount_cents: number;
+    tax_cents: number;
+    items: Array<{
+        item_type: 'product' | 'service' | 'custom';
+        product_id: number | null;
+        description: string;
+        unit: string;
+        quantity: number;
+        unit_price_cents: number;
+        discount_percent: number;
+    }>;
+}
+
+interface Props extends PageProps {
+    proposal?: ExistingProposal;
+}
 
 const emptyItem = (): ProposalItemForm => ({
     item_type: 'custom',
@@ -35,10 +60,24 @@ const emptyItem = (): ProposalItemForm => ({
     discount_percent: 0,
 });
 
-export default function CreateProposal({}: Props) {
-    const [items, setItems] = useState<ProposalItemForm[]>([emptyItem()]);
+export default function CreateProposal({ proposal }: Props) {
+    const isEditing = !!proposal;
 
-    const { data, setData, post, processing, errors } = useForm<{
+    const initialItems: ProposalItemForm[] = proposal
+        ? proposal.items.map((item) => ({
+            item_type: item.item_type,
+            product_id: item.product_id ? String(item.product_id) : '',
+            description: item.description,
+            unit: item.unit,
+            quantity: item.quantity,
+            unit_price_cents: item.unit_price_cents,
+            discount_percent: item.discount_percent,
+        }))
+        : [emptyItem()];
+
+    const [items, setItems] = useState<ProposalItemForm[]>(initialItems);
+
+    const { data, setData, post, put, processing, errors } = useForm<{
         title: string;
         customer_name: string;
         customer_email: string;
@@ -47,17 +86,21 @@ export default function CreateProposal({}: Props) {
         customer_state: string;
         notes: string;
         valid_until: string;
+        discount_cents: number;
+        tax_cents: number;
         items: ProposalItemForm[];
     }>({
-        title: '',
-        customer_name: '',
-        customer_email: '',
-        customer_phone: '',
-        customer_city: '',
-        customer_state: '',
-        notes: '',
-        valid_until: '',
-        items: [emptyItem()],
+        title: proposal?.title ?? '',
+        customer_name: proposal?.customer_name ?? '',
+        customer_email: proposal?.customer_email ?? '',
+        customer_phone: proposal?.customer_phone ?? '',
+        customer_city: proposal?.customer_city ?? '',
+        customer_state: proposal?.customer_state ?? '',
+        notes: proposal?.notes ?? '',
+        valid_until: proposal?.valid_until ?? '',
+        discount_cents: proposal?.discount_cents ?? 0,
+        tax_cents: proposal?.tax_cents ?? 0,
+        items: initialItems,
     });
 
     const updateItem = (index: number, field: keyof ProposalItemForm, value: string | number) => {
@@ -85,22 +128,33 @@ export default function CreateProposal({}: Props) {
     };
 
     const subtotal = items.reduce((sum, item) => sum + itemTotal(item), 0);
+    const total = Math.max(0, subtotal - data.discount_cents + data.tax_cents);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/consultor/propostas');
+        if (isEditing && proposal) {
+            put(`/consultor/propostas/${proposal.uuid}`);
+        } else {
+            post('/consultor/propostas');
+        }
     };
 
     return (
-        <ConsultantLayout title="Nova Proposta">
-            <Head title="Nova Proposta — Consultor" />
+        <ConsultantLayout title={isEditing ? 'Editar Proposta' : 'Nova Proposta'}>
+            <Head title={isEditing ? `Editar ${proposal?.title}` : 'Nova Proposta'} />
 
             <Stack direction="row" sx={{ alignItems: 'center', gap: 2, mb: 3 }}>
-                <IconButton component={Link} href="/consultor/propostas" size="small">
+                <IconButton
+                    component={Link}
+                    href={isEditing ? `/consultor/propostas/${proposal?.uuid}` : '/consultor/propostas'}
+                    size="small"
+                >
                     <ArrowBackIcon />
                 </IconButton>
                 <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 800 }}>Nova Proposta</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                        {isEditing ? 'Editar Proposta' : 'Nova Proposta'}
+                    </Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>Preencha os dados do cliente e os itens da proposta</Typography>
                 </Box>
             </Stack>
@@ -163,7 +217,7 @@ export default function CreateProposal({}: Props) {
                                             value={data.customer_email}
                                             onChange={(e) => setData('customer_email', e.target.value)}
                                             error={!!errors.customer_email}
-                                            helperText={errors.customer_email}
+                                            helperText={errors.customer_email ?? 'Necessário para enviar a proposta por e-mail'}
                                             fullWidth
                                             size="small"
                                         />
@@ -303,11 +357,33 @@ export default function CreateProposal({}: Props) {
 
                                 <Divider sx={{ my: 2 }} />
 
-                                <Stack direction="row" sx={{ justifyContent: 'flex-end', gap: 2 }}>
-                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>Subtotal:</Typography>
-                                    <Typography variant="body1" sx={{ fontWeight: 800, color: 'primary.main', minWidth: 110, textAlign: 'right' }}>
-                                        {formatBRL(subtotal)}
-                                    </Typography>
+                                <Stack spacing={1} sx={{ alignItems: 'flex-end' }}>
+                                    <Stack direction="row" sx={{ justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Subtotal:</Typography>
+                                        <Typography variant="body1" sx={{ fontWeight: 800, color: 'primary.main', minWidth: 110, textAlign: 'right' }}>
+                                            {formatBRL(subtotal)}
+                                        </Typography>
+                                    </Stack>
+                                    <Stack direction="row" sx={{ alignItems: 'center', gap: 1.5 }}>
+                                        <TextField
+                                            label="Desconto geral (R$)"
+                                            type="number"
+                                            value={data.discount_cents ? (data.discount_cents / 100).toFixed(2) : ''}
+                                            onChange={(e) => setData('discount_cents', Math.round(Number(e.target.value) * 100))}
+                                            size="small"
+                                            sx={{ width: 160 }}
+                                            slotProps={{ htmlInput: { min: 0, step: '0.01' } }}
+                                        />
+                                        <TextField
+                                            label="Taxa / Imposto (R$)"
+                                            type="number"
+                                            value={data.tax_cents ? (data.tax_cents / 100).toFixed(2) : ''}
+                                            onChange={(e) => setData('tax_cents', Math.round(Number(e.target.value) * 100))}
+                                            size="small"
+                                            sx={{ width: 160 }}
+                                            slotProps={{ htmlInput: { min: 0, step: '0.01' } }}
+                                        />
+                                    </Stack>
                                 </Stack>
                             </Paper>
 
@@ -340,11 +416,23 @@ export default function CreateProposal({}: Props) {
                                     </Typography>
                                     <Typography variant="body2" sx={{ fontWeight: 700 }}>{formatBRL(subtotal)}</Typography>
                                 </Stack>
+                                {data.discount_cents > 0 && (
+                                    <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Desconto</Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 700, color: 'error.main' }}>-{formatBRL(data.discount_cents)}</Typography>
+                                    </Stack>
+                                )}
+                                {data.tax_cents > 0 && (
+                                    <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
+                                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>Taxa / Imposto</Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 700 }}>+{formatBRL(data.tax_cents)}</Typography>
+                                    </Stack>
+                                )}
                                 <Divider />
                                 <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
                                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Total</Typography>
                                     <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'primary.main' }}>
-                                        {formatBRL(subtotal)}
+                                        {formatBRL(total)}
                                     </Typography>
                                 </Stack>
                             </Stack>
@@ -358,11 +446,11 @@ export default function CreateProposal({}: Props) {
                                     disabled={processing}
                                     sx={{ fontWeight: 700 }}
                                 >
-                                    {processing ? 'Salvando...' : 'Salvar Proposta'}
+                                    {processing ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Salvar Proposta')}
                                 </Button>
                                 <Button
                                     component={Link}
-                                    href="/consultor/propostas"
+                                    href={isEditing ? `/consultor/propostas/${proposal?.uuid}` : '/consultor/propostas'}
                                     variant="outlined"
                                     fullWidth
                                 >
@@ -371,7 +459,9 @@ export default function CreateProposal({}: Props) {
                             </Stack>
 
                             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 2 }}>
-                                A proposta será salva como rascunho. Você poderá editá-la e enviá-la ao cliente depois.
+                                {isEditing
+                                    ? 'Alterações só podem ser feitas enquanto a proposta estiver em rascunho.'
+                                    : 'A proposta será salva como rascunho. Você poderá editá-la e enviá-la ao cliente depois.'}
                             </Typography>
                         </Paper>
                     </Grid>

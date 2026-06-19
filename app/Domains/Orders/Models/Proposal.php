@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Domains\Orders\Models;
 
+use App\Domains\B2b\Models\Company;
+use App\Domains\Customers\Models\Customer;
 use App\Models\User;
+use Database\Factories\ProposalFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +16,9 @@ use Illuminate\Support\Str;
 
 final class Proposal extends Model
 {
+    /** @use HasFactory<ProposalFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'uuid', 'user_id', 'customer_id', 'company_id',
         'customer_name', 'customer_email', 'customer_phone', 'customer_cpf_cnpj',
@@ -24,43 +31,49 @@ final class Proposal extends Model
     ];
 
     protected $casts = [
-        'valid_until'      => 'date',
-        'simulator_data'   => 'array',
-        'subtotal_cents'   => 'integer',
-        'discount_cents'   => 'integer',
-        'tax_cents'        => 'integer',
-        'total_cents'      => 'integer',
+        'valid_until' => 'date',
+        'simulator_data' => 'array',
+        'subtotal_cents' => 'integer',
+        'discount_cents' => 'integer',
+        'tax_cents' => 'integer',
+        'total_cents' => 'integer',
         'pdf_generated_at' => 'datetime',
-        'sent_at'          => 'datetime',
-        'viewed_at'        => 'datetime',
-        'accepted_at'      => 'datetime',
-        'rejected_at'      => 'datetime',
+        'sent_at' => 'datetime',
+        'viewed_at' => 'datetime',
+        'accepted_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     protected static function booted(): void
     {
-        static::creating(function (self $p): void {
-            $p->uuid      ??= Str::uuid()->toString();
-            $p->reference ??= 'PROP-' . strtoupper(substr((string) $p->uuid, 0, 6));
+        self::creating(function (self $p): void {
+            $p->uuid ??= Str::uuid()->toString();
+            $p->reference ??= 'PROP-'.strtoupper(substr((string) $p->uuid, 0, 6));
         });
     }
 
     // ─── Relationships ────────────────────────────────────────────────────────
 
-    /** Consultor que criou a proposta */
+    /**
+     * Consultor que criou a proposta
+     *
+     * @return BelongsTo<User, $this>
+     */
     public function consultant(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /** @return BelongsTo<Customer, $this> */
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(\App\Domains\Customers\Models\Customer::class);
+        return $this->belongsTo(Customer::class);
     }
 
+    /** @return BelongsTo<Company, $this> */
     public function company(): BelongsTo
     {
-        return $this->belongsTo(\App\Domains\B2b\Models\Company::class);
+        return $this->belongsTo(Company::class);
     }
 
     /** @return HasMany<ProposalItem, $this> */
@@ -74,28 +87,28 @@ final class Proposal extends Model
     public function statusLabel(): string
     {
         return match ($this->status) {
-            'draft'     => 'Rascunho',
-            'sent'      => 'Enviada',
-            'viewed'    => 'Visualizada',
-            'accepted'  => 'Aceita',
-            'rejected'  => 'Recusada',
-            'expired'   => 'Expirada',
+            'draft' => 'Rascunho',
+            'sent' => 'Enviada',
+            'viewed' => 'Visualizada',
+            'accepted' => 'Aceita',
+            'rejected' => 'Recusada',
+            'expired' => 'Expirada',
             'converted' => 'Convertida',
-            default     => $this->status,
+            default => $this->status,
         };
     }
 
     public function statusColor(): string
     {
         return match ($this->status) {
-            'draft'     => 'default',
-            'sent'      => 'info',
-            'viewed'    => 'primary',
-            'accepted'  => 'success',
-            'rejected'  => 'error',
-            'expired'   => 'warning',
+            'draft' => 'default',
+            'sent' => 'info',
+            'viewed' => 'primary',
+            'accepted' => 'success',
+            'rejected' => 'error',
+            'expired' => 'warning',
             'converted' => 'success',
-            default     => 'default',
+            default => 'default',
         };
     }
 
@@ -118,7 +131,7 @@ final class Proposal extends Model
         $subtotal = $this->items->sum('total_cents');
         $this->update([
             'subtotal_cents' => $subtotal,
-            'total_cents'    => max(0, $subtotal - $this->discount_cents + $this->tax_cents),
+            'total_cents' => max(0, $subtotal - $this->discount_cents + $this->tax_cents),
         ]);
     }
 }

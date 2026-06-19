@@ -45,7 +45,7 @@ final class HomeController extends Controller
                 'brand_name' => $p->brand?->name,
                 'cover_image' => $p->coverImage()?->url(),
             ]),
-            'generatorProducts' => $this->productService->byCategorySlug('kits-fotovoltaicos', 6)->map(fn ($p) => [
+            'generatorProducts' => $this->productService->byCategorySlug('geradores-fotovoltaicos', 6)->map(fn ($p) => [
                 'id' => $p->id,
                 'uuid' => $p->uuid,
                 'name' => $p->name,

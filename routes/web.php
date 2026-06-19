@@ -36,6 +36,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\Consultant\DashboardController as ConsultantDashboard;
 use App\Http\Controllers\Consultant\ProposalController as ConsultantProposalController;
+use App\Http\Controllers\Public\ProposalPublicController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Storefront\AccountController;
 use App\Http\Controllers\Storefront\B2bController;
@@ -77,6 +78,11 @@ Route::get('/api/search/autocomplete', [SearchController::class, 'autocomplete']
 Route::get('/blog', [StorefrontBlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{slug}', [StorefrontBlogController::class, 'show'])->name('blog.show');
 
+// Proposta comercial — visualização e resposta pública (sem autenticação)
+Route::get('/proposta/{uuid}', [ProposalPublicController::class, 'show'])->name('proposals.public.show');
+Route::post('/proposta/{uuid}/aceitar', [ProposalPublicController::class, 'accept'])->name('proposals.public.accept');
+Route::post('/proposta/{uuid}/recusar', [ProposalPublicController::class, 'reject'])->name('proposals.public.reject');
+
 // Páginas institucionais
 Route::get('/sobre', [StaticPageController::class, 'sobre'])->name('about');
 Route::get('/contato', [StaticPageController::class, 'contato'])->name('contact');
@@ -106,6 +112,8 @@ Route::middleware(['auth', 'verified', 'consultant'])->prefix('consultor')->name
     Route::get('/propostas/criar', [ConsultantProposalController::class, 'create'])->name('proposals.create');
     Route::post('/propostas', [ConsultantProposalController::class, 'store'])->name('proposals.store');
     Route::get('/propostas/{uuid}', [ConsultantProposalController::class, 'show'])->name('proposals.show');
+    Route::get('/propostas/{uuid}/editar', [ConsultantProposalController::class, 'edit'])->name('proposals.edit');
+    Route::put('/propostas/{uuid}', [ConsultantProposalController::class, 'update'])->name('proposals.update');
     Route::post('/propostas/{uuid}/enviar', [ConsultantProposalController::class, 'send'])->name('proposals.send');
     Route::delete('/propostas/{uuid}', [ConsultantProposalController::class, 'destroy'])->name('proposals.destroy');
 });

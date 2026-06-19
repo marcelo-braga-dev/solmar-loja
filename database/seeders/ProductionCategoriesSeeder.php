@@ -16,13 +16,8 @@ final class ProductionCategoriesSeeder extends Seeder
 {
     public function run(): void
     {
-        if (Category::exists()) {
-            $this->command->info('Categorias já existem. Pulando.');
-
-            return;
-        }
-
         $tree = [
+            ['name' => 'Geradores Fotovoltaicos', 'icon' => 'bolt'],
             ['name' => 'Energia Solar', 'icon' => 'solar_power', 'children' => [
                 ['name' => 'Kits Fotovoltaicos', 'icon' => 'inventory', 'children' => [
                     ['name' => 'Kits On Grid'],
@@ -65,24 +60,25 @@ final class ProductionCategoriesSeeder extends Seeder
     private function createCategoryTree(array $items, ?int $parentId, int $depth): void
     {
         foreach ($items as $position => $item) {
-            $slug     = Str::slug($item['name']);
+            $slug = Str::slug($item['name']);
             $existing = Category::where('slug', $slug)->first();
 
             if ($existing) {
                 if (! empty($item['children'])) {
                     $this->createCategoryTree($item['children'], $existing->id, $depth + 1);
                 }
+
                 continue;
             }
 
             $category = Category::create([
-                'name'      => $item['name'],
-                'slug'      => $slug,
+                'name' => $item['name'],
+                'slug' => $slug,
                 'parent_id' => $parentId,
-                'icon'      => $item['icon'] ?? null,
-                'position'  => $position,
+                'icon' => $item['icon'] ?? null,
+                'position' => $position,
                 'is_active' => true,
-                'depth'     => $depth,
+                'depth' => $depth,
             ]);
 
             if (! empty($item['children'])) {

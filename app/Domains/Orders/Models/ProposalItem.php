@@ -18,24 +18,33 @@ final class ProposalItem extends Model
     ];
 
     protected $casts = [
-        'quantity'         => 'integer',
+        'quantity' => 'integer',
         'unit_price_cents' => 'integer',
         'discount_percent' => 'integer',
-        'total_cents'      => 'integer',
-        'position'         => 'integer',
+        'total_cents' => 'integer',
+        'position' => 'integer',
     ];
 
     protected static function booted(): void
     {
-        static::saving(function (self $item): void {
-            $discount   = $item->unit_price_cents * ($item->discount_percent / 100);
-            $unitFinal  = (int) round($item->unit_price_cents - $discount);
+        self::saving(function (self $item): void {
+            $discount = $item->unit_price_cents * ($item->discount_percent / 100);
+            $unitFinal = (int) round($item->unit_price_cents - $discount);
             $item->total_cents = $unitFinal * $item->quantity;
         });
     }
 
-    public function proposal(): BelongsTo  { return $this->belongsTo(Proposal::class); }
-    public function product(): BelongsTo   { return $this->belongsTo(Product::class); }
+    /** @return BelongsTo<Proposal, $this> */
+    public function proposal(): BelongsTo
+    {
+        return $this->belongsTo(Proposal::class);
+    }
+
+    /** @return BelongsTo<Product, $this> */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
 
     public function unitPriceAfterDiscount(): int
     {

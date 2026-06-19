@@ -278,11 +278,16 @@ npm run dev
   - `isEditable()`, `isExpired()`, `recalculate()`, `statusLabel()`, `statusColor()`
 - **`ProposalItem` model:** product_id, sku, name, unit_price_cents, discount_percent, quantity, total_cents (auto-calculado no `booted()`)
   - `unitPriceAfterDiscount()`: aplica desconto individual do item
-- **`ConsultantProposalController`** — index, create, store, show, send, destroy
-- **Rotas registradas:** `/consultor/propostas`, `/consultor/propostas/criar`, `/consultor/propostas/{uuid}`, enviar, destroy
+- **`ProposalService`** (`app/Domains/Orders/Services/ProposalService.php`) — `create()`, `update()` (somente draft), `sendToCustomer()` (dispara `ProposalSent` mailable em fila), `markViewed()`, `accept()`/`reject()` (guarda expiração e status respondível, notifica o consultor)
+- **`ProposalSent` mailable** + view `emails/proposals/sent.blade.php` — email com itens, total e link de aceite
+- **`ProposalRespondedNotification`** — notifica o consultor por e-mail quando o cliente aceita/recusa
+- **`ConsultantProposalController`** — index, create, store, show, **edit, update** (novo), send, destroy
+- **`Public\ProposalPublicController`** (novo namespace) — `show` (marca como visualizada), `accept`, `reject` — sem autenticação, via uuid
+- **Rotas registradas:** `/consultor/propostas/{uuid}/editar` (GET/PUT), `/proposta/{uuid}` + `/aceitar` + `/recusar` (públicas)
 - **`Proposals.tsx`** — listagem paginada com tabela, chips de status, link para detalhe
-- **`CreateProposal.tsx`** — formulário completo: dados básicos, dados do cliente, itens (tipo/descrição/qtd/preço/desconto), observações, sidebar com totais calculados em tempo real
-- **`ShowProposal.tsx`** — detalhe da proposta com tabela de itens, totais, botões "Marcar como Enviada" e "Excluir"
+- **`CreateProposal.tsx`** — formulário de criação **e edição** (modo dual via prop `proposal`), campos de desconto/taxa gerais, itens (tipo/descrição/qtd/preço/desconto), sidebar com totais em tempo real
+- **`ShowProposal.tsx`** — detalhe com "Gerar PDF" (impressão client-side, mesmo padrão de `Admin/Reports`), "Enviar por E-mail" (desabilitado sem e-mail do cliente), "Editar" (somente draft), "Link de Aceite" com copiar, timeline de sent/viewed/accepted/rejected
+- **`Public/ProposalView.tsx`** (nova página pública) — visualização da proposta pelo cliente com botões Aceitar/Recusar (com motivo opcional)
 
 ### FASE 14 — Correções Críticas de Checkout e Propostas ✅
 
@@ -485,6 +490,7 @@ Sincronização diária (e incremental de hora em hora) do catálogo de kits fot
 | Filtro `inStock` sem implementação | `ProductFilterData` tinha `inStock` mas repositório ignorava | `EloquentProductRepository::filter()` implementado com `whereExists` na tabela `stocks` |
 | Slider de preço limitado a R$5.000 | `max={500000}` hardcoded na Category | Corrigido para `max={5000000}` (R$50.000) — compatível com preços solares |
 | Alerta de estoque sem UI | `sendStockAlert` declarado em Product.tsx mas nunca exibido | Form inline exibido quando `stock_quantity === 0` |
+| `Model::factory()` quebrado para todos os models de domínio | Resolução padrão do Laravel para `Database\Factories\{Model}Factory` não bate com namespace aninhado `App\Domains\{Domínio}\Models\{Model}` (gera `Database\Factories\Domains\{Domínio}\Models\{Model}Factory`, que não existe) — afetava `Product::factory()`, `Proposal::factory()` etc. em qualquer teste | `Factory::guessFactoryNamesUsing()` registrado em `AppServiceProvider::boot()` resolvendo só pelo `class_basename` |
 
 ---
 
@@ -588,10 +594,9 @@ GOOGLE_REDIRECT_URL=https://seudominio.com.br/auth/google/callback
 4. **Notas Fiscais** — integração Focus NFe / NFe.io (obrigatório B2B)
 
 ### 🟠 Alta Prioridade
-1. **Proposta Comercial — UI completa** — formulário de criação (`/consultor/propostas/criar`), página de edição, envio por email, geração de PDF, página de aceite pública (`/proposta/{uuid}`)
-2. Testes Feature para todas as features novas (cobertura ≥ 80%)
-3. Email sequences pós-compra (entregue → avaliação → recomendação)
-4. Conciliação financeira (Asaas × pedidos)
+1. Email sequences pós-compra (entregue → avaliação → recomendação)
+2. Conciliação financeira (Asaas × pedidos)
+3. Testes Feature para as demais features sem cobertura ainda (fora de Proposta Comercial / branding / Home, já cobertas)
 
 ### 🟡 Média Prioridade
 1. **Portal B2B — Dashboard da Empresa** — exibir tabela de preço ativa, crédito disponível, últimas compras, projetos
