@@ -40,7 +40,7 @@ const DRAWER_WIDTH = 264;
 
 interface NavSection {
     title: string;
-    items: { label: string; icon: ReactNode; href: string; badge?: number }[];
+    items: { label: string; icon: ReactNode; href: string; badge?: number; superAdminOnly?: boolean }[];
 }
 
 const NAV_SECTIONS: NavSection[] = [
@@ -113,6 +113,7 @@ const NAV_SECTIONS: NavSection[] = [
     {
         title: 'Sistema',
         items: [
+            { label: 'Administradores', icon: <PeopleIcon fontSize="small" />, href: '/admin/admins', superAdminOnly: true },
             { label: 'Configurações', icon: <SettingsIcon fontSize="small" />, href: '/admin/settings' },
             { label: 'Menu Principal', icon: <MenuIcon fontSize="small" />, href: '/admin/menu-items' },
             { label: 'Identidade Visual', icon: <PaletteIcon fontSize="small" />, href: '/admin/branding' },
@@ -234,7 +235,7 @@ export default function AdminLayout({ children, title = 'Admin', breadcrumbs }: 
                             {section.title}
                         </Typography>
                         <List dense disablePadding>
-                            {section.items.map((item) => {
+                            {section.items.filter((item) => !item.superAdminOnly || auth.user?.is_super_admin).map((item) => {
                                 const active = currentPath === item.href
                                     || (item.href !== '/admin' && currentPath.startsWith(item.href));
                                 return (

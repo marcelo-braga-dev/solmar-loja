@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Domains\B2b\Models\Company;
 use App\Domains\Catalog\Models\PriceList;
+use App\Domains\Consultant\Models\ConsultantProfile;
 use App\Domains\Customers\Models\Customer;
 use App\Domains\Orders\Models\Order;
 use App\Domains\Orders\Models\Proposal;
@@ -22,11 +24,12 @@ final class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory;
+
     use HasRoles;
     use Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'password',
+        'name', 'email', 'password', 'email_verified_at',
         'google_id', 'avatar_url', 'auth_provider',
         'price_list_id', 'company_id',
         'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at',
@@ -37,8 +40,8 @@ final class User extends Authenticatable implements MustVerifyEmail
     protected function casts(): array
     {
         return [
-            'email_verified_at'       => 'datetime',
-            'password'                => 'hashed',
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
@@ -69,12 +72,12 @@ final class User extends Authenticatable implements MustVerifyEmail
 
     public function company(): BelongsTo
     {
-        return $this->belongsTo(\App\Domains\B2b\Models\Company::class);
+        return $this->belongsTo(Company::class);
     }
 
     public function consultantProfile(): HasOne
     {
-        return $this->hasOne(\App\Domains\Consultant\Models\ConsultantProfile::class);
+        return $this->hasOne(ConsultantProfile::class);
     }
 
     // ─── Guards de papel ─────────────────────────────────────────────────────

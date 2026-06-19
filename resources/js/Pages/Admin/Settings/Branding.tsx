@@ -1,6 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import {
-    Alert, Avatar, Box, Button, Card, CardContent, Divider,
+    Avatar, Box, Button, Card, CardContent,
     Grid, InputAdornment, Stack, TextField, Typography,
 } from '@mui/material';
 import SolarPowerIcon from '@mui/icons-material/SolarPower';
@@ -13,9 +13,6 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@inertiajs/react';
 
 interface BrandingData {
-    store_name: string;
-    store_tagline: string;
-    store_description: string;
     logo_url: string;
     logo_dark_url: string;
     favicon_url: string;
@@ -29,10 +26,9 @@ interface BrandingData {
     social_whatsapp: string;
     social_linkedin: string;
     footer_text: string;
-    store_cnpj: string;
 }
 
-interface Props extends PageProps { branding: BrandingData }
+interface Props extends Omit<PageProps, 'branding'> { branding: BrandingData }
 
 const COLOR_PRESETS = [
     { name: 'Solar Azul (padrão)', primary: '#0B5FFF', secondary: '#FFB300', accent: '#00C853', dark: '#1A1A2E' },
@@ -43,7 +39,7 @@ const COLOR_PRESETS = [
 ];
 
 export default function Branding({ branding }: Props) {
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing } = useForm({
         ...branding,
         logo: null as File | null,
         logo_dark: null as File | null,
@@ -100,7 +96,7 @@ export default function Branding({ branding }: Props) {
                 <Box>
                     <Typography variant="h5" sx={{ fontWeight: 700 }}>Identidade Visual</Typography>
                     <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                        Configure logo, cores, redes sociais e informações da sua loja.
+                        Configure logo, cores e redes sociais da sua loja.
                     </Typography>
                 </Box>
             </Stack>
@@ -111,51 +107,6 @@ export default function Branding({ branding }: Props) {
                     {/* Coluna esquerda */}
                     <Grid size={{ xs: 12, md: 8 }}>
                         <Stack spacing={3}>
-
-                            {/* Informações da loja */}
-                            <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                                <CardContent sx={{ p: 3 }}>
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Informações da loja</Typography>
-                                    <Stack spacing={2.5}>
-                                        <TextField
-                                            label="Nome da loja"
-                                            value={data.store_name}
-                                            onChange={(e) => setData('store_name', e.target.value)}
-                                            error={!!errors.store_name}
-                                            helperText={errors.store_name}
-                                            fullWidth
-                                            required
-                                        />
-                                        <TextField
-                                            label="Slogan / tagline"
-                                            value={data.store_tagline}
-                                            onChange={(e) => setData('store_tagline', e.target.value)}
-                                            fullWidth
-                                            placeholder="Ex.: Energia solar para todos"
-                                        />
-                                        <TextField
-                                            label="Descrição da loja"
-                                            value={data.store_description}
-                                            onChange={(e) => setData('store_description', e.target.value)}
-                                            multiline
-                                            rows={3}
-                                            fullWidth
-                                            helperText="Aparece no rodapé e nas meta descriptions padrão."
-                                        />
-                                        <Grid container spacing={2}>
-                                            <Grid size={{ xs: 12, sm: 6 }}>
-                                                <TextField
-                                                    label="CNPJ"
-                                                    value={data.store_cnpj}
-                                                    onChange={(e) => setData('store_cnpj', e.target.value)}
-                                                    fullWidth
-                                                    placeholder="00.000.000/0001-00"
-                                                />
-                                            </Grid>
-                                        </Grid>
-                                    </Stack>
-                                </CardContent>
-                            </Card>
 
                             {/* Paleta de cores */}
                             <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>

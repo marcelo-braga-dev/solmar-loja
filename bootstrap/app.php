@@ -1,8 +1,15 @@
 <?php
 
+use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureConsultant;
+use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RequiresTwoFactor;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,20 +19,21 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
+            HandleInertiaRequests::class,
         ]);
 
         $middleware->alias([
-            'admin'      => \App\Http\Middleware\EnsureAdmin::class,
-            'consultant' => \App\Http\Middleware\EnsureConsultant::class,
-            'two-factor' => \App\Http\Middleware\RequiresTwoFactor::class,
+            'admin' => EnsureAdmin::class,
+            'consultant' => EnsureConsultant::class,
+            'super-admin' => EnsureSuperAdmin::class,
+            'two-factor' => RequiresTwoFactor::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response) {
+        $exceptions->respond(function (Response $response) {
             if (in_array($response->getStatusCode(), [403, 404, 500, 503], true) && ! app()->runningInConsole()) {
-                return \Inertia\Inertia::render('Error', [
-                    'status'  => $response->getStatusCode(),
+                return Inertia::render('Error', [
+                    'status' => $response->getStatusCode(),
                     'message' => $response->getStatusCode() === 500 ? 'Erro interno do servidor.' : null,
                 ])
                     ->toResponse(request())

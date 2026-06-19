@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\BrandingController;
@@ -358,10 +359,18 @@ Route::middleware(['auth', 'admin', 'two-factor'])->prefix('admin')->name('admin
     // Configurações
     Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::put('settings', [SettingsController::class, 'update'])->name('settings.update');
+    Route::post('settings/google-oauth/test', [SocialiteController::class, 'testConfiguration'])->name('settings.google-oauth.test');
 
     // Identidade visual
     Route::get('branding', [BrandingController::class, 'index'])->name('branding.index');
     Route::post('branding', [BrandingController::class, 'update'])->name('branding.update');
+
+    // Administradores (somente super-admin)
+    Route::middleware('super-admin')->group(function (): void {
+        Route::get('admins', [AdminUserController::class, 'index'])->name('admins.index');
+        Route::post('admins', [AdminUserController::class, 'store'])->name('admins.store');
+        Route::delete('admins/{admin}', [AdminUserController::class, 'destroy'])->name('admins.destroy');
+    });
 
     // Notificações
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
