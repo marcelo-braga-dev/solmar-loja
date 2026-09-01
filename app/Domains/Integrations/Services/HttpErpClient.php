@@ -155,15 +155,14 @@ final class HttpErpClient implements ErpClientInterface
             return null;
         }
 
-        // Preço: aceita centavos (int) ou reais (float)
-        $rawPrice = $item['price'] ?? $item['preco'] ?? $item['preco_venda'] ?? $item['valor'] ?? 0;
-        $priceCents = is_float($rawPrice) || (is_string($rawPrice) && str_contains($rawPrice, '.'))
-            ? (int) round((float) $rawPrice * 100)
-            : (int) $rawPrice;
+        // Preço: o ERP sempre informa em reais (int ou float — JSON só marca float
+        // quando há ponto decimal, ex: 7418 vs 899.90 — ambos são reais, nunca centavos)
+        $rawPrice   = $item['price'] ?? $item['preco'] ?? $item['preco_venda'] ?? $item['valor'] ?? 0;
+        $priceCents = (int) round(((float) $rawPrice) * 100);
 
-        $rawCompare = $item['compare_price'] ?? $item['preco_de'] ?? null;
+        $rawCompare   = $item['compare_price'] ?? $item['preco_de'] ?? null;
         $compareCents = $rawCompare !== null
-            ? (is_float($rawCompare) ? (int) round((float) $rawCompare * 100) : (int) $rawCompare)
+            ? (int) round(((float) $rawCompare) * 100)
             : null;
 
         // Edeltec não informa quantidade real, apenas o flag booleano "disponivel"
