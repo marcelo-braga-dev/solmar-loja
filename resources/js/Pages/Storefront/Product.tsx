@@ -124,8 +124,8 @@ export default function ProductPage({ product, relatedProducts, frequentlyBought
         name: product.name,
         slug: product.slug,
         price_cents: product.price_cents,
-        cover_image: product.cover_image ?? null,
-        brand_name: product.brand_name ?? null,
+        cover_image: product.images?.[0]?.url ?? null,
+        brand_name: product.brand?.name ?? null,
     });
 
     const images: ProductImage[] = product.images ?? [];
