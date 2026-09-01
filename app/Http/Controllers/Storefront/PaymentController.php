@@ -28,22 +28,22 @@ final class PaymentController extends Controller
         $latestPayment = $order->payments->sortByDesc('created_at')->first();
 
         return Inertia::render('Storefront/Payment', [
-            'order'   => [
-                'uuid'        => $order->uuid,
-                'status'      => $order->status->value,
+            'order' => [
+                'uuid' => $order->uuid,
+                'status' => $order->status->value,
                 'total_cents' => $order->total_cents,
             ],
             'payment' => $latestPayment ? [
-                'uuid'           => $latestPayment->uuid,
-                'method'         => $latestPayment->method->value,
-                'status'         => $latestPayment->status->value,
-                'status_label'   => $latestPayment->status->label(),
-                'pix_qr_code'    => $latestPayment->pix_qr_code,
+                'uuid' => $latestPayment->uuid,
+                'method' => $latestPayment->method->value,
+                'status' => $latestPayment->status->value,
+                'status_label' => $latestPayment->status->label(),
+                'pix_qr_code' => $latestPayment->pix_qr_code,
                 'pix_copy_paste' => $latestPayment->pix_copy_paste,
-                'boleto_url'     => $latestPayment->boleto_url,
+                'boleto_url' => $latestPayment->boleto_url,
                 'boleto_barcode' => $latestPayment->boleto_barcode,
-                'expires_at'     => $latestPayment->expires_at?->toIso8601String(),
-                'paid_at'        => $latestPayment->paid_at?->toIso8601String(),
+                'expires_at' => $latestPayment->expires_at?->toIso8601String(),
+                'paid_at' => $latestPayment->paid_at?->toIso8601String(),
             ] : null,
         ]);
     }
@@ -51,11 +51,13 @@ final class PaymentController extends Controller
     public function store(Request $request, Order $order): RedirectResponse
     {
         $request->validate([
-            'method'       => ['required', new Enum(PaymentMethod::class)],
+            'method' => ['required', new Enum(PaymentMethod::class)],
             'installments' => ['integer', 'min:1', 'max:12'],
-            'card_token'   => ['nullable', 'string'],
-            'card_holder'  => ['nullable', 'string'],
-            'cpf_cnpj'     => ['nullable', 'string'],
+            'card_token' => ['nullable', 'string'],
+            'card_holder' => ['nullable', 'string'],
+            'cpf_cnpj' => ['nullable', 'string'],
+            'card_brand' => ['nullable', 'string'],
+            'card_issuer_id' => ['nullable', 'string'],
         ]);
 
         $paymentData = new PaymentRequestData(
@@ -64,6 +66,8 @@ final class PaymentController extends Controller
             cardToken: $request->string('card_token')->value() ?: null,
             cardHolder: $request->string('card_holder')->value() ?: null,
             cpfCnpj: $request->string('cpf_cnpj')->value() ?: null,
+            cardBrand: $request->string('card_brand')->value() ?: null,
+            cardIssuerId: $request->string('card_issuer_id')->value() ?: null,
         );
 
         $payment = $this->paymentService->initiate($order, $paymentData);

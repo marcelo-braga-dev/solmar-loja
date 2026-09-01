@@ -15,5 +15,7 @@ final class PaymentRequestData extends Data
         public readonly ?string $cardToken = null,      // tokenizado pelo gateway no front
         public readonly ?string $cardHolder = null,
         public readonly ?string $cpfCnpj = null,
+        public readonly ?string $cardBrand = null,      // payment_method_id (bandeira) devolvido pelo mp.cardForm()
+        public readonly ?string $cardIssuerId = null,   // issuer_id devolvido pelo mp.cardForm()
     ) {}
 }

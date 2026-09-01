@@ -252,8 +252,11 @@ onChange={(e) => setData('price_cents', Math.round(Number(e.target.value) * 100)
 
 ```dotenv
 # Pagamentos
-PAYMENT_GATEWAY=mock          # mock | asaas
-ASAAS_API_KEY=                # chave Asaas (produção)
+PAYMENT_GATEWAY=mock          # mock | mercadopago (padrão de produção) | asaas (legado)
+MERCADOPAGO_ACCESS_TOKEN=     # TEST-... em sandbox, APP_USR-... em produção
+MERCADOPAGO_PUBLIC_KEY=       # usada pelo SDK no frontend (tokenização de cartão)
+MERCADOPAGO_WEBHOOK_SECRET=   # "Chave secreta" do painel de Webhooks do Mercado Pago
+ASAAS_API_KEY=                # chave Asaas (legado)
 ASAAS_ENVIRONMENT=sandbox     # sandbox | production
 
 # ERP / Distribuidor

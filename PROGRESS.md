@@ -163,10 +163,19 @@ npm run dev
 
 ### FASE 4 — Pagamentos ✅
 - **Models:** Payment, PaymentWebhook
-- **Gateways:** MockGateway (dev), AsaasGateway (PIX, Boleto, Cartão via HTTP)
+- **Gateways:** MockGateway (dev), MercadoPagoGateway (PIX, Boleto, Cartão — **padrão de produção**), AsaasGateway (PIX, Boleto, Cartão — legado)
 - **PaymentService:** initiate, webhook idempotente, approve, fail, refund
 - **Events:** PaymentApproved → ReleaseStockOnPaymentApproved + CreateTransactionOnPaymentApproved
-- Webhook `/webhooks/{gateway}` sem CSRF, verificação de assinatura Asaas
+- Webhook `/webhooks/{gateway}` sem CSRF, verificação de assinatura (Mercado Pago via HMAC `x-signature`, Asaas via header de token)
+- **Cartão de crédito (Mercado Pago):** tokenização client-side via SDK `mp.cardForm()` (`CreditCardForm.tsx`) — número/validade/CVV nunca trafegam pelo backend
+
+### FASE 17 — Integração Mercado Pago (gateway padrão) ✅
+- **MercadoPagoGateway** (`app/Domains/Payments/Gateways/MercadoPagoGateway.php`): Pix, Boleto (`bolbradesco`) e Cartão via `POST /v1/payments`, com idempotência (`X-Idempotency-Key`) e retry automático
+- Migration `pix_qr_code` de `string` para `text` (o QR code base64 do MP é maior que 255 chars)
+- Webhook: verificação HMAC-SHA256 (`x-signature`/`x-request-id`) + reconsulta obrigatória de status via `GET /v1/payments/{id}` (o MP não informa o status real no corpo do evento)
+- Frontend: `CreditCardForm.tsx` com SDK `https://sdk.mercadopago.com/js/v2` (`mp.cardForm()`), integrado ao `Checkout.tsx`
+- `PAYMENT_GATEWAY=mercadopago` passa a ser o valor recomendado de produção (requer `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_PUBLIC_KEY` e `MERCADOPAGO_WEBHOOK_SECRET`)
+- Testes: `tests/Feature/Domains/Payments/MercadoPagoGatewayTest.php`, `tests/Feature/Storefront/MercadoPagoWebhookTest.php`
 
 ### FASE 5 — Admin Operacional ✅
 - **OrderAdminController:** listagem, detalhe, troca de status, expedição
@@ -589,7 +598,7 @@ GOOGLE_REDIRECT_URL=https://seudominio.com.br/auth/google/callback
 ## Próximos Passos
 
 ### 🔴 Crítico
-1. **Asaas** — `PAYMENT_GATEWAY=asaas` + `ASAAS_API_KEY`
+1. **Mercado Pago** — `PAYMENT_GATEWAY=mercadopago` + `MERCADOPAGO_ACCESS_TOKEN` + `MERCADOPAGO_PUBLIC_KEY` + `MERCADOPAGO_WEBHOOK_SECRET` (credenciais reais de produção — hoje só integrado e testado com token de sandbox)
 2. **AppSolar** — solicitar `APPSOLAR_API_TOKEN` e a URL real de produção ao time do AppSolar, configurar `APPSOLAR_API_BASE_URL` e `APPSOLAR_SYNC_ENABLED=true`, e rodar `php artisan appsolar:sync --full` para a primeira carga completa do catálogo
 3. **Google OAuth** — Google Console + variáveis GOOGLE_*
 4. **Notas Fiscais** — integração Focus NFe / NFe.io (obrigatório B2B)

@@ -1,12 +1,12 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import {
     Box, Container, Typography, Grid, Paper, Stack, Button,
     TextField, Divider, Radio, RadioGroup, FormControlLabel,
-    Stepper, Step, StepLabel, CircularProgress, Chip,
-    FormControl, InputLabel, Select, MenuItem, Alert,
+    Stepper, Step, StepLabel, CircularProgress, Chip, Alert,
 } from '@mui/material';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import CepField from '@/Components/ui/CepField';
+import CreditCardForm, { type CreditCardFormHandle } from '@/Components/storefront/CreditCardForm';
 import PixIcon from '@mui/icons-material/AccountBalance';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import ReceiptIcon from '@mui/icons-material/Receipt';
@@ -65,17 +65,20 @@ function calcShippingOptions(cep: string, totalCents: number): ShippingOption[] 
     ];
 }
 
-const INSTALLMENT_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
-
 export default function Checkout({ cart, addresses }: Props) {
     const [activeStep] = [0];
     const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
     const [loadingShipping, setLoadingShipping] = useState(false);
     const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
+    const [cardError, setCardError] = useState<string | null>(null);
+    const [tokenizingCard, setTokenizingCard] = useState(false);
+    const cardFormRef = useRef<CreditCardFormHandle>(null);
+    const { props } = usePage<PageProps>();
+    const mercadoPagoPublicKey = props.mercadoPagoPublicKey;
 
     const defaultAddress = addresses[0];
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, transform, processing, errors } = useForm({
         recipient: defaultAddress?.recipient ?? '',
         cep: defaultAddress?.cep ?? '',
         street: defaultAddress?.street ?? '',
@@ -88,6 +91,11 @@ export default function Checkout({ cart, addresses }: Props) {
         installments: 1,
         shipping_cents: 0,
         shipping_method: '',
+        card_token: '',
+        card_holder: '',
+        card_brand: '',
+        card_issuer_id: '',
+        cpf_cnpj: '',
     });
 
     const handleCepFill = (info: { logradouro: string; bairro: string; localidade: string; uf: string }) => {
@@ -144,8 +152,30 @@ export default function Checkout({ cart, addresses }: Props) {
         setSelectedShipping(null);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (data.payment_method === 'credit_card') {
+            setCardError(null);
+            setTokenizingCard(true);
+            const result = await cardFormRef.current?.tokenize();
+            setTokenizingCard(false);
+
+            if (!result) {
+                setCardError('Confira os dados do cartão e tente novamente.');
+                return;
+            }
+
+            transform((currentData) => ({
+                ...currentData,
+                installments: result.installments,
+                card_token: result.token,
+                card_brand: result.paymentMethodId,
+                card_issuer_id: result.issuerId,
+                cpf_cnpj: result.identificationNumber,
+            }));
+        }
+
         post('/checkout');
     };
 
@@ -322,27 +352,11 @@ export default function Checkout({ cart, addresses }: Props) {
                                     </RadioGroup>
 
                                     {data.payment_method === 'credit_card' && (
-                                        <Box sx={{ mt: 2 }}>
-                                            <FormControl fullWidth size="small">
-                                                <InputLabel>Parcelas</InputLabel>
-                                                <Select
-                                                    value={data.installments}
-                                                    label="Parcelas"
-                                                    onChange={(e) => setData('installments', Number(e.target.value))}
-                                                >
-                                                    {INSTALLMENT_OPTIONS.map((n) => {
-                                                        const parcelValue = totalCents / n;
-                                                        return (
-                                                            <MenuItem key={n} value={n}>
-                                                                {n === 1
-                                                                    ? `À vista — ${formatBRL(totalCents)}`
-                                                                    : `${n}x de ${formatBRL(parcelValue)} sem juros`}
-                                                            </MenuItem>
-                                                        );
-                                                    })}
-                                                </Select>
-                                            </FormControl>
-                                        </Box>
+                                        <CreditCardForm
+                                            ref={cardFormRef}
+                                            publicKey={mercadoPagoPublicKey}
+                                            amount={totalCents / 100}
+                                        />
                                     )}
                                 </Paper>
                             </Stack>
@@ -394,23 +408,27 @@ export default function Checkout({ cart, addresses }: Props) {
                                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Total</Typography>
                                         <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'primary.main' }}>{formatBRL(totalCents)}</Typography>
                                     </Stack>
-                                    {data.payment_method === 'credit_card' && data.installments > 1 && (
+                                    {data.payment_method === 'credit_card' && (
                                         <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'right' }}>
-                                            {data.installments}x de {formatBRL(totalCents / data.installments)} sem juros
+                                            Parcelamento definido no formulário de cartão acima
                                         </Typography>
                                     )}
                                 </Stack>
+
+                                {cardError && (
+                                    <Alert severity="error" sx={{ mb: 1.5 }}>{cardError}</Alert>
+                                )}
 
                                 <Button
                                     type="submit"
                                     variant="contained"
                                     size="large"
                                     fullWidth
-                                    disabled={processing || !selectedShipping}
+                                    disabled={processing || tokenizingCard || !selectedShipping}
                                     startIcon={<LockIcon />}
                                     sx={{ py: 1.5, fontWeight: 700 }}
                                 >
-                                    {processing ? 'Processando...' : 'Confirmar Pedido'}
+                                    {tokenizingCard ? 'Validando cartão...' : processing ? 'Processando...' : 'Confirmar Pedido'}
                                 </Button>
 
                                 {!selectedShipping && (

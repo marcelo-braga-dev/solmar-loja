@@ -203,11 +203,12 @@ sincronizados, total de syncs, taxa de sucesso, última execução), histórico 
 ```php
 // app/Domains/Payments/Contracts/PaymentGatewayInterface.php
 interface PaymentGatewayInterface {
-    public function initiatePix(Order $order, Payment $payment): array;
-    public function initiateBoleto(Order $order, Payment $payment): array;
-    public function initiateCard(Order $order, Payment $payment, array $cardData): array;
-    public function processWebhook(array $payload, string $gateway): void;
+    public function name(): string;
+    public function createPix(Order $order, PaymentRequestData $data): Payment;
+    public function createBoleto(Order $order, PaymentRequestData $data): Payment;
+    public function createCreditCard(Order $order, PaymentRequestData $data): Payment;
     public function refund(Payment $payment, int $amountCents): bool;
+    public function status(Payment $payment): string;
 }
 ```
 
@@ -216,7 +217,8 @@ interface PaymentGatewayInterface {
 | Gateway | Arquivo | Ativo quando |
 |---|---|---|
 | MockGateway | `Gateways/MockGateway.php` | `PAYMENT_GATEWAY=mock` (dev) |
-| AsaasGateway | `Gateways/AsaasGateway.php` | `PAYMENT_GATEWAY=asaas` (produção) |
+| MercadoPagoGateway | `Gateways/MercadoPagoGateway.php` | `PAYMENT_GATEWAY=mercadopago` (produção — **padrão**) |
+| AsaasGateway | `Gateways/AsaasGateway.php` | `PAYMENT_GATEWAY=asaas` (produção — legado) |
 
 ### MockGateway (Desenvolvimento)
 
@@ -224,7 +226,35 @@ interface PaymentGatewayInterface {
 - Boleto: código de barras fake
 - Cartão: aprovação imediata
 
-### AsaasGateway (Produção)
+### MercadoPagoGateway (Produção — padrão)
+
+```dotenv
+PAYMENT_GATEWAY=mercadopago
+MERCADOPAGO_ACCESS_TOKEN=TEST-xxx   # TEST-... em sandbox, APP_USR-... em produção
+MERCADOPAGO_PUBLIC_KEY=TEST-xxx     # usada pelo SDK no frontend (tokenização de cartão)
+MERCADOPAGO_WEBHOOK_SECRET=         # "Chave secreta" configurada no painel de Webhooks do MP
+```
+
+- HTTP requests para `https://api.mercadopago.com/v1/payments` (pix, boleto e cartão usam o
+  mesmo endpoint, variando `payment_method_id`/`token`). Não existe host de sandbox separado —
+  o modo é definido pelo prefixo do `access_token` (`TEST-...` vs `APP_USR-...`).
+- Pix: expira em 30 min; QR code (`pix_qr_code`) e copia-e-cola (`pix_copy_paste`) vêm de
+  `point_of_interaction.transaction_data`.
+- Boleto: `payment_method_id: bolbradesco`; expira em 3 dias úteis; exige CPF/CNPJ (de
+  `customers.cpf_cnpj`) e endereço (de `orders.shipping_address`).
+- Cartão: exige tokenização **client-side** via SDK `https://sdk.mercadopago.com/js/v2`
+  (`mp.cardForm()`, componente `resources/js/Components/storefront/CreditCardForm.tsx`) — o
+  número, validade e CVV nunca trafegam pelo nosso backend (PCI compliance). O front envia
+  `card_token`, `card_brand` (payment_method_id) e `card_issuer_id` já resolvidos pelo SDK.
+- Retry automático em falhas transitórias (`Http::retry(2, 500)`), idempotência via header
+  `X-Idempotency-Key`.
+- Webhook em `POST /webhooks/mercadopago` — verificação via headers `x-signature`
+  (`ts=...,v1=...`) e `x-request-id`, comparando HMAC-SHA256 contra `MERCADOPAGO_WEBHOOK_SECRET`.
+  O Mercado Pago **nunca informa o status real no corpo do webhook** (`type` é sempre
+  `"payment"") — por isso o `PaymentService` sempre reconsulta `GET /v1/payments/{id}` antes de
+  aprovar ou reprovar um pagamento vindo desse gateway.
+
+### AsaasGateway (Produção — legado)
 
 ```dotenv
 PAYMENT_GATEWAY=asaas

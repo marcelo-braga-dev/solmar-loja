@@ -25,9 +25,9 @@ final class WebhookController extends Controller
         Log::info('Webhook received', ['gateway' => $gateway, 'ip' => $request->ip()]);
 
         try {
-            $payload   = $request->all();
-            $eventType = $payload['type'] ?? $payload['event'] ?? 'unknown';
-            $eventId   = $payload['id'] ?? $payload['payment']['id'] ?? uniqid('evt_');
+            $payload = $request->all();
+            $eventType = $payload['type'] ?? $payload['topic'] ?? $payload['event'] ?? 'unknown';
+            $eventId = $payload['data']['id'] ?? $payload['id'] ?? $payload['payment']['id'] ?? uniqid('evt_');
 
             $this->paymentService->processWebhook($gateway, $eventType, $eventId, $payload);
 
@@ -43,7 +43,8 @@ final class WebhookController extends Controller
     {
         return match ($gateway) {
             'asaas' => $this->verifyAsaas($request),
-            'mock'  => true,
+            'mercadopago' => $this->verifyMercadoPago($request),
+            'mock' => true,
             default => true,
         };
     }
@@ -60,5 +61,60 @@ final class WebhookController extends Controller
         $receivedToken = $request->header('asaas-access-token', '');
 
         return hash_equals($accessToken, $receivedToken);
+    }
+
+    private function verifyMercadoPago(Request $request): bool
+    {
+        $secret = config('services.mercadopago.webhook_secret', '');
+
+        if (empty($secret)) {
+            return true;
+        }
+
+        $signatureHeader = $request->header('x-signature', '');
+        $requestId = $request->header('x-request-id', '');
+
+        if (empty($signatureHeader)) {
+            return false;
+        }
+
+        $parts = [];
+        foreach (explode(',', $signatureHeader) as $part) {
+            [$key, $value] = array_pad(explode('=', $part, 2), 2, null);
+
+            if ($key !== null) {
+                $parts[trim($key)] = trim((string) $value);
+            }
+        }
+
+        $ts = $parts['ts'] ?? '';
+        $hash = $parts['v1'] ?? '';
+
+        if ($ts === '' || $hash === '') {
+            return false;
+        }
+
+        $dataId = $this->extractDataIdFromQuery($request);
+        $manifest = "id:{$dataId};request-id:{$requestId};ts:{$ts};";
+        $computed = hash_hmac('sha256', $manifest, $secret);
+
+        return hash_equals($computed, $hash);
+    }
+
+    /**
+     * O Mercado Pago manda o id do recurso como "data.id" na query string.
+     * O PHP converte pontos em nomes de chave para "_" ao popular $_GET, então
+     * $request->query('data.id') nunca encontra o valor real — é preciso ler a
+     * query string bruta para extrair a chave com o ponto literal.
+     */
+    private function extractDataIdFromQuery(Request $request): string
+    {
+        $queryString = (string) $request->server('QUERY_STRING', '');
+
+        if (preg_match('/(?:^|&)data\.id=([^&]*)/', $queryString, $matches) === 1) {
+            return urldecode($matches[1]);
+        }
+
+        return (string) ($request->query('id') ?? '');
     }
 }

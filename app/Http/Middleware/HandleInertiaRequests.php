@@ -46,6 +46,7 @@ class HandleInertiaRequests extends Middleware
             'branding' => fn () => $this->resolveBranding(),
             'priceList' => fn () => $this->resolvePriceList($request),
             'mainMenu' => fn () => $this->resolveMainMenu(),
+            'mercadoPagoPublicKey' => fn () => config('services.mercadopago.public_key', ''),
         ];
     }
 

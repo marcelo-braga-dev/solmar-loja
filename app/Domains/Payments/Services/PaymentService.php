@@ -13,6 +13,7 @@ use App\Domains\Payments\Enums\PaymentStatus;
 use App\Domains\Payments\Events\PaymentApproved;
 use App\Domains\Payments\Events\PaymentFailed;
 use App\Domains\Payments\Gateways\AsaasGateway;
+use App\Domains\Payments\Gateways\MercadoPagoGateway;
 use App\Domains\Payments\Gateways\MockGateway;
 use App\Domains\Payments\Models\Payment;
 use App\Domains\Payments\Models\PaymentWebhook;
@@ -24,6 +25,7 @@ final class PaymentService
     public function gateway(): PaymentGatewayInterface
     {
         return match (config('services.payment.gateway', 'mock')) {
+            'mercadopago' => app(MercadoPagoGateway::class),
             'asaas' => app(AsaasGateway::class),
             default => app(MockGateway::class),
         };
@@ -34,8 +36,8 @@ final class PaymentService
         $gateway = $this->gateway();
 
         $payment = match ($data->method) {
-            PaymentMethod::Pix        => $gateway->createPix($order, $data),
-            PaymentMethod::Boleto     => $gateway->createBoleto($order, $data),
+            PaymentMethod::Pix => $gateway->createPix($order, $data),
+            PaymentMethod::Boleto => $gateway->createBoleto($order, $data),
             PaymentMethod::CreditCard => $gateway->createCreditCard($order, $data),
         };
 
@@ -63,15 +65,15 @@ final class PaymentService
             ['event_type' => $eventType, 'payload' => $payload, 'status' => 'received'],
         );
 
-        DB::transaction(function () use ($webhook, $payload, $eventType): void {
+        DB::transaction(function () use ($webhook, $payload, $eventType, $gateway): void {
             try {
-                $this->handleWebhookEvent($eventType, $payload);
+                $this->handleWebhookEvent($gateway, $eventType, $payload);
                 $webhook->update(['status' => 'processed', 'processed_at' => now()]);
             } catch (\Throwable $e) {
                 $webhook->update(['status' => 'failed', 'error' => $e->getMessage()]);
                 Log::error('Payment webhook processing failed', [
                     'webhook_id' => $webhook->id,
-                    'error'      => $e->getMessage(),
+                    'error' => $e->getMessage(),
                 ]);
                 throw $e;
             }
@@ -116,24 +118,36 @@ final class PaymentService
         event(new PaymentApproved($payment, $order));
     }
 
-    private function handleWebhookEvent(string $eventType, array $payload): void
+    private function handleWebhookEvent(string $gateway, string $eventType, array $payload): void
     {
-        $gatewayTxId = $payload['transaction_id'] ?? $payload['id'] ?? null;
+        $gatewayTxId = $payload['data']['id'] ?? $payload['transaction_id'] ?? $payload['id'] ?? null;
 
         if (! $gatewayTxId) {
             return;
         }
 
-        $payment = Payment::where('gateway_transaction_id', $gatewayTxId)->first();
+        $payment = Payment::where('gateway_transaction_id', (string) $gatewayTxId)->first();
 
         if (! $payment) {
             return;
         }
 
+        // Mercado Pago sempre notifica type=payment, sem indicar o status no corpo —
+        // a documentação recomenda nunca confiar no payload e sempre reconsultar a API.
+        if ($gateway === 'mercadopago') {
+            match (app(MercadoPagoGateway::class)->status($payment)) {
+                PaymentStatus::Approved->value => $this->approve($payment),
+                PaymentStatus::Failed->value, PaymentStatus::Expired->value => $this->fail($payment),
+                default => null,
+            };
+
+            return;
+        }
+
         match ($eventType) {
             'payment.approved', 'pix.received', 'boleto.paid' => $this->approve($payment),
-            'payment.failed', 'payment.expired'               => $this->fail($payment),
-            default                                            => null,
+            'payment.failed', 'payment.expired' => $this->fail($payment),
+            default => null,
         };
     }
 }

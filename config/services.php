@@ -40,6 +40,13 @@ return [
         'gateway' => env('PAYMENT_GATEWAY', 'mock'),
     ],
 
+    // Mercado Pago (https://www.mercadopago.com.br/developers) — gateway padrão de produção
+    'mercadopago' => [
+        'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
+        'public_key' => env('MERCADOPAGO_PUBLIC_KEY'),
+        'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET'),
+    ],
+
     // Asaas (https://www.asaas.com/)
     'asaas' => [
         'api_key' => env('ASAAS_API_KEY'),

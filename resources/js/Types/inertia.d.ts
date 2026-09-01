@@ -63,6 +63,7 @@ export interface SharedProps {
     branding: Branding;
     priceList: PriceListInfo | null;
     mainMenu: MainMenuItem[];
+    mercadoPagoPublicKey: string;
     [key: string]: unknown;
 }
 
