@@ -8,6 +8,7 @@ use App\Domains\Catalog\Contracts\SolarKitSpecificationRepositoryInterface;
 use App\Domains\Catalog\Enums\ProductStatus;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Catalog\Models\SolarKitSpecification;
+use App\Domains\Catalog\Services\MarginPricingService;
 use App\Domains\Integrations\Contracts\AppSolarClientInterface;
 use App\Domains\Integrations\Data\AppSolarProductData;
 use App\Domains\Integrations\Services\AppSolarProductSyncService;
@@ -74,6 +75,7 @@ function makeSyncService(AppSolarClientInterface $client): AppSolarProductSyncSe
         app(ProductRepositoryInterface::class),
         app(BrandRepositoryInterface::class),
         app(SolarKitSpecificationRepositoryInterface::class),
+        app(MarginPricingService::class),
     );
 }
 

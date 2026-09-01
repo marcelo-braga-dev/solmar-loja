@@ -7,6 +7,7 @@ use App\Domains\Catalog\Contracts\ProductRepositoryInterface;
 use App\Domains\Catalog\Enums\ProductStatus;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Catalog\Models\SolarKitSpecification;
+use App\Domains\Catalog\Services\MarginPricingService;
 use App\Domains\Inventory\Contracts\ErpClientInterface;
 use App\Domains\Inventory\Data\ErpProductData;
 use App\Domains\Inventory\Services\InventorySyncService;
@@ -73,6 +74,7 @@ function makeInventorySyncService(ErpClientInterface $client): InventorySyncServ
         app(ProductRepositoryInterface::class),
         app(CategoryRepositoryInterface::class),
         app(StockService::class),
+        app(MarginPricingService::class),
     );
 }
 

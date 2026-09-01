@@ -14,6 +14,7 @@ use App\Domains\Catalog\Models\Attribute;
 use App\Domains\Catalog\Models\AttributeValue;
 use App\Domains\Catalog\Models\Product;
 use App\Domains\Catalog\Models\ProductImage;
+use App\Domains\Catalog\Services\MarginPricingService;
 use App\Domains\Inventory\Contracts\ErpClientInterface;
 use App\Domains\Inventory\Data\ErpProductData;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,7 @@ final class InventorySyncService
         private readonly ProductRepositoryInterface $products,
         private readonly CategoryRepositoryInterface $categories,
         private readonly StockService $stock,
+        private readonly MarginPricingService $pricing,
     ) {}
 
     public function sync(): array
@@ -122,15 +124,24 @@ final class InventorySyncService
         // inativo arquiva (some da loja, sem apagar histórico/pedidos já feitos).
         $status = $data->isActive ? ProductStatus::Published : ProductStatus::Archived;
 
+        // Preço de venda = preço do fornecedor + margem por potência (kWp), nunca o preço
+        // vindo do ERP. Enquanto nenhuma faixa de margem estiver cadastrada (ou o item não
+        // tiver custo/potência), usa o preço do ERP como rede de segurança.
+        $priceCents = $data->costCents !== null
+            ? ($this->pricing->calculateSalePriceCents($data->costCents, $data->kitPowerKwp) ?? $data->priceCents)
+            : $data->priceCents;
+
         if ($product === null) {
             $productData = new ProductData(
                 name: $data->name,
                 slug: Str::slug($data->name).'-'.Str::random(4),
                 sku: $data->sku,
-                priceCents: $data->priceCents,
+                priceCents: $priceCents,
                 status: $status,
                 description: $data->description,
                 compareAtPriceCents: $data->compareAtPriceCents,
+                costCents: $data->costCents,
+                kitPowerKwp: $data->kitPowerKwp,
                 weightGrams: $data->weightGrams,
                 specifications: $data->specifications,
                 externalId: $data->externalId,
@@ -146,8 +157,10 @@ final class InventorySyncService
         } else {
             // Atualiza preço, estoque, status e demais dados vindos do ERP
             $product->update([
-                'price_cents' => $data->priceCents,
+                'price_cents' => $priceCents,
                 'compare_at_price_cents' => $data->compareAtPriceCents,
+                'cost_cents' => $data->costCents ?? $product->cost_cents,
+                'kit_power_kwp' => $data->kitPowerKwp ?? $product->kit_power_kwp,
                 'weight_grams' => $data->weightGrams ?? $product->weight_grams,
                 'specifications' => $data->specifications ?? $product->specifications,
                 'external_id' => $data->externalId,

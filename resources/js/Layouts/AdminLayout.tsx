@@ -20,6 +20,7 @@ import SyncIcon from '@mui/icons-material/Sync';
 import BoltIcon from '@mui/icons-material/Bolt';
 import HeadsetMicIcon from '@mui/icons-material/HeadsetMic';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import PercentIcon from '@mui/icons-material/Percent';
 import BusinessIcon from '@mui/icons-material/Business';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -57,6 +58,7 @@ const NAV_SECTIONS: NavSection[] = [
             { label: 'Importar CSV', icon: <FileUploadIcon fontSize="small" />, href: '/admin/products/import' },
             { label: 'Categorias', icon: <CategoryIcon fontSize="small" />, href: '/admin/categories' },
             { label: 'Marcas', icon: <BrandingWatermarkIcon fontSize="small" />, href: '/admin/brands' },
+            { label: 'Margens de Venda', icon: <PercentIcon fontSize="small" />, href: '/admin/margin-tiers' },
         ],
     },
     {

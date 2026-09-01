@@ -19,6 +19,7 @@ final class ProductData extends Data
         public readonly ?string $description = null,
         public readonly ?int $compareAtPriceCents = null,
         public readonly ?int $costCents = null,
+        public readonly ?float $kitPowerKwp = null,
         public readonly ?int $brandId = null,
         public readonly ?int $weightGrams = null,
         public readonly ?int $lengthMm = null,

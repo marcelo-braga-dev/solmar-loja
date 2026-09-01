@@ -268,6 +268,7 @@ final class EloquentProductRepository implements ProductRepositoryInterface
             'price_cents' => $data->priceCents,
             'compare_at_price_cents' => $data->compareAtPriceCents,
             'cost_cents' => $data->costCents,
+            'kit_power_kwp' => $data->kitPowerKwp,
             'status' => $data->status,
             'brand_id' => $data->brandId,
             'weight_grams' => $data->weightGrams,

@@ -189,6 +189,7 @@ final class ProductService
             description: $data->description,
             compareAtPriceCents: $data->compareAtPriceCents,
             costCents: $data->costCents,
+            kitPowerKwp: $data->kitPowerKwp,
             brandId: $data->brandId,
             weightGrams: $data->weightGrams,
             lengthMm: $data->lengthMm,

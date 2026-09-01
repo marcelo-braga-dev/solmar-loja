@@ -334,6 +334,20 @@ Sincronização diária (e incremental de hora em hora) do catálogo de kits fot
 - **Config:** `APPSOLAR_API_BASE_URL`, `APPSOLAR_API_TOKEN`, `APPSOLAR_API_TIMEOUT`, `APPSOLAR_SYNC_ENABLED` no `.env` — **ainda não configurado em produção** (nenhum registro em `sync_logs` com `source = appsolar`); ver item crítico #2 em Próximos Passos.
 - **Testes:** `AppSolarProductDataTest`, `HtmlSanitizerTest`, `AppSolarHttpClientTest` (paginação, 401/404/429), `AppSolarProductSyncServiceTest` (create/update publica ou arquiva conforme `disponivel`, republica, sobrescreve status manual, arquivamento por ausência, erro por item), `AppSolarIntegrationTest` (painel admin) — 21 testes, todos verdes.
 
+### FASE 18 — Precificação por Margem Escalável (kWp) ✅
+
+O preço de venda dos kits deixou de vir direto da integração (AppSolar/ERP) e passou a ser **calculado pela loja**: `preço do fornecedor (cost_cents) + margem de venda`, com a margem configurável pelo admin em faixas de potência (kWp) — kits menores podem ter margem maior, kits maiores margem menor.
+
+- **`margin_tiers`** (`min_kwp`, `max_kwp` nullable = sem limite superior, `margin_percent`, `is_active`) — CRUD em `/admin/margin-tiers` (`Admin/MarginTiers/Index.tsx`), validação de sobreposição de faixas (`StoreMarginTierRequest`/`UpdateMarginTierRequest`).
+- **`products.kit_power_kwp`** (novo, `decimal(8,2)` nullable) — potência do kit, preenchida por ambas as sincronizações (antes só existia em `solar_kit_specifications`, exclusivo do AppSolar).
+- **`MarginPricingService`** (`Catalog/Services`) — `calculateSalePriceCents(costCents, kitPowerKwp)`: encontra a faixa cuja `[min_kwp, max_kwp]` contém a potência do kit (limites inclusivos) e aplica `cost * (1 + margin%/100)`. Quando a potência cai num **gap** entre faixas (ou fora de toda faixa cadastrada), usa a faixa **ativa mais próxima** em vez de bloquear o cálculo. Lista de faixas ativas cacheada (`Cache::remember`, TTL 1h, invalidada a cada create/update/delete).
+- **Recálculo automático:** criar, editar ou excluir uma faixa dispara `RecalculateKitPricesJob` (fila `sync`) — reprecifica todos os produtos com `cost_cents`+`kit_power_kwp` preenchidos, sem esperar a próxima sincronização com o ERP/AppSolar.
+- **Rede de segurança:** enquanto nenhuma faixa de margem estiver cadastrada (ou o item não tiver custo/potência), `InventorySyncService` e `AppSolarProductSyncService` continuam usando o preço de venda vindo da integração — a loja nunca fica com kit sem preço.
+- **Robustez do sync:** `HttpErpClient::fetchProducts()` agora relança a exceção em vez de truncar o catálogo silenciosamente numa falha de página — evita reprecificar/arquivar com base num catálogo incompleto.
+- **Editar um produto manualmente no admin não apaga `kit_power_kwp`** — `UpdateProductRequest` preserva o valor atual (o campo não é editável nesse formulário; é gerido só pelas sincronizações).
+- **Config:** nenhuma faixa é criada por padrão — até o admin cadastrar a primeira, os preços continuam vindo da integração (aviso exibido na tela `/admin/margin-tiers`).
+- **Testes:** `MarginPricingServiceTest` (faixa exata, gap/fallback pela mais próxima, faixa acima/abaixo de tudo, faixas inativas, sem faixa nenhuma, arredondamento, invalidação de cache), `MarginTierControllerTest` (CRUD, validação de sobreposição, disparo do job, bloqueio para não-admin) — 19 testes, todos verdes.
+
 ---
 
 ## Extras — Design e UX

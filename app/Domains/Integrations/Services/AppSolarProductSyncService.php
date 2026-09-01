@@ -10,6 +10,7 @@ use App\Domains\Catalog\Contracts\SolarKitSpecificationRepositoryInterface;
 use App\Domains\Catalog\Data\ProductData;
 use App\Domains\Catalog\Enums\ProductStatus;
 use App\Domains\Catalog\Models\Product;
+use App\Domains\Catalog\Services\MarginPricingService;
 use App\Domains\Integrations\Contracts\AppSolarClientInterface;
 use App\Domains\Integrations\Data\AppSolarProductData;
 use App\Domains\Integrations\Exceptions\AppSolarAuthenticationException;
@@ -42,6 +43,7 @@ final class AppSolarProductSyncService
         private readonly ProductRepositoryInterface $products,
         private readonly BrandRepositoryInterface $brands,
         private readonly SolarKitSpecificationRepositoryInterface $specifications,
+        private readonly MarginPricingService $pricing,
     ) {}
 
     /**
@@ -147,7 +149,13 @@ final class AppSolarProductSyncService
     private function processItem(AppSolarProductData $item): bool
     {
         $costCents = (int) round($item->costPrice * 100);
-        $priceCents = (int) round($item->salePrice * 100);
+        $kitPowerKwp = $item->kitPowerKwp > 0 ? $item->kitPowerKwp : null;
+
+        // Preço de venda = preço do fornecedor + margem por potência (kWp), nunca o preço
+        // vindo da API. Enquanto nenhuma faixa de margem estiver cadastrada, usa o preço de
+        // venda do fornecedor como rede de segurança para não publicar kit sem preço.
+        $priceCents = $this->pricing->calculateSalePriceCents($costCents, $kitPowerKwp)
+            ?? (int) round($item->salePrice * 100);
 
         $panelBrand = $item->panelBrand !== null ? $this->brands->findOrCreateByName($item->panelBrand, $item->panelBrandLogo) : null;
         $inverterBrand = $item->inverterBrand !== null ? $this->brands->findOrCreateByName($item->inverterBrand, $item->inverterBrandLogo) : null;
@@ -178,6 +186,7 @@ final class AppSolarProductSyncService
                 priceCents: $priceCents,
                 status: $status,
                 costCents: $costCents,
+                kitPowerKwp: $kitPowerKwp,
                 brandId: $brandId,
                 specifications: $specifications,
                 externalId: $item->sku,
@@ -191,6 +200,7 @@ final class AppSolarProductSyncService
                 'name' => $item->name,
                 'price_cents' => $priceCents,
                 'cost_cents' => $costCents,
+                'kit_power_kwp' => $kitPowerKwp,
                 'brand_id' => $brandId ?? $product->brand_id,
                 'specifications' => $specifications,
                 'external_id' => $item->sku,

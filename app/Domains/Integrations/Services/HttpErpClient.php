@@ -169,6 +169,14 @@ final class HttpErpClient implements ErpClientInterface
             ? (int) round(((float) $rawCompare) * 100)
             : null;
 
+        // Preço de custo (fornecedor) — base do cálculo de preço de venda por margem (ver MarginPricingService)
+        $rawCost = $item['cost'] ?? $item['preco_custo'] ?? null;
+        $costCents = $rawCost !== null
+            ? (int) round(((float) $rawCost) * 100)
+            : null;
+
+        $kitPowerKwp = isset($item['potencia_kit_kwp']) ? (float) $item['potencia_kit_kwp'] : null;
+
         // Edeltec não informa quantidade real, apenas o flag booleano "disponivel", que
         // também é a fonte de verdade para visibilidade do produto na loja (ver InventorySyncService).
         $isActive = ! array_key_exists('disponivel', $item) || (bool) $item['disponivel'];
@@ -215,6 +223,8 @@ final class HttpErpClient implements ErpClientInterface
             priceCents: $priceCents,
             stockQuantity: $stock,
             isActive: $isActive,
+            costCents: $costCents,
+            kitPowerKwp: $kitPowerKwp,
             compareAtPriceCents: $compareCents,
             weightGrams: isset($item['weight']) ? (int) ($item['weight'] * 1000) : null,
             description: $item['description'] ?? $item['descricao_completa'] ?? $item['observacoes'] ?? null,

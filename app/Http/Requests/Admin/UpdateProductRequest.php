@@ -25,26 +25,26 @@ final class UpdateProductRequest extends FormRequest
             : $this->route('product');
 
         return [
-            'name'                   => ['required', 'string', 'max:255'],
-            'slug'                   => ['nullable', 'string', 'max:255', "unique:products,slug,{$productId}"],
-            'sku'                    => ['required', 'string', 'max:100', "unique:products,sku,{$productId}"],
-            'price_cents'            => ['required', 'integer', 'min:0'],
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', "unique:products,slug,{$productId}"],
+            'sku' => ['required', 'string', 'max:100', "unique:products,sku,{$productId}"],
+            'price_cents' => ['required', 'integer', 'min:0'],
             'compare_at_price_cents' => ['nullable', 'integer', 'min:0'],
-            'cost_cents'             => ['nullable', 'integer', 'min:0'],
-            'status'                 => ['required', new Enum(ProductStatus::class)],
-            'short_description'      => ['nullable', 'string', 'max:500'],
-            'description'            => ['nullable', 'string'],
-            'brand_id'               => ['nullable', 'integer', 'exists:brands,id'],
-            'category_ids'           => ['nullable', 'array'],
-            'category_ids.*'         => ['integer', 'exists:categories,id'],
-            'weight_grams'           => ['nullable', 'integer', 'min:0'],
-            'length_mm'              => ['nullable', 'integer', 'min:0'],
-            'width_mm'               => ['nullable', 'integer', 'min:0'],
-            'height_mm'              => ['nullable', 'integer', 'min:0'],
-            'specifications'         => ['nullable', 'array'],
-            'featured'               => ['boolean'],
-            'meta_title'             => ['nullable', 'string', 'max:255'],
-            'meta_description'       => ['nullable', 'string', 'max:500'],
+            'cost_cents' => ['nullable', 'integer', 'min:0'],
+            'status' => ['required', new Enum(ProductStatus::class)],
+            'short_description' => ['nullable', 'string', 'max:500'],
+            'description' => ['nullable', 'string'],
+            'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
+            'weight_grams' => ['nullable', 'integer', 'min:0'],
+            'length_mm' => ['nullable', 'integer', 'min:0'],
+            'width_mm' => ['nullable', 'integer', 'min:0'],
+            'height_mm' => ['nullable', 'integer', 'min:0'],
+            'specifications' => ['nullable', 'array'],
+            'featured' => ['boolean'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:500'],
         ];
     }
 
@@ -62,6 +62,10 @@ final class UpdateProductRequest extends FormRequest
             description: $validated['description'] ?? null,
             compareAtPriceCents: isset($validated['compare_at_price_cents']) ? (int) $validated['compare_at_price_cents'] : null,
             costCents: isset($validated['cost_cents']) ? (int) $validated['cost_cents'] : null,
+            // kit_power_kwp não é editável neste formulário (é gerido pelas sincronizações
+            // de ERP/AppSolar) — preserva o valor atual para não quebrar o recálculo de
+            // preço por margem a cada edição manual do produto.
+            kitPowerKwp: $this->route('product') instanceof Product ? $this->route('product')->kit_power_kwp : null,
             brandId: isset($validated['brand_id']) ? (int) $validated['brand_id'] : null,
             weightGrams: isset($validated['weight_grams']) ? (int) $validated['weight_grams'] : null,
             lengthMm: isset($validated['length_mm']) ? (int) $validated['length_mm'] : null,

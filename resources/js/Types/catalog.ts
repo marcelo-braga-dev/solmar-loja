@@ -25,6 +25,14 @@ export interface Brand {
     products_count?: number;
 }
 
+export interface MarginTier {
+    id: number;
+    min_kwp: number;
+    max_kwp: number | null;
+    margin_percent: number;
+    is_active: boolean;
+}
+
 export interface ProductImage {
     id?: number;
     url: string;

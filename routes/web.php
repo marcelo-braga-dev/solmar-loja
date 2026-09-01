@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FlashSaleController as AdminFlashSaleController;
 use App\Http\Controllers\Admin\IntegrationController;
 use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\MarginTierController;
 use App\Http\Controllers\Admin\MenuItemController;
 use App\Http\Controllers\Admin\NewsletterAdminController;
 use App\Http\Controllers\Admin\NotificationController;
@@ -309,6 +310,13 @@ Route::middleware(['auth', 'admin', 'two-factor'])->prefix('admin')->name('admin
     Route::post('brands', [BrandController::class, 'store'])->name('brands.store');
     Route::put('brands/{brand}', [BrandController::class, 'update'])->name('brands.update');
     Route::delete('brands/{brand}', [BrandController::class, 'destroy'])->name('brands.destroy');
+
+    // Margens de venda por potência (kWp)
+    Route::get('margin-tiers', [MarginTierController::class, 'index'])->name('margin-tiers.index');
+    Route::post('margin-tiers', [MarginTierController::class, 'store'])->name('margin-tiers.store');
+    Route::put('margin-tiers/{marginTier}', [MarginTierController::class, 'update'])->name('margin-tiers.update');
+    Route::delete('margin-tiers/{marginTier}', [MarginTierController::class, 'destroy'])->name('margin-tiers.destroy');
+    Route::post('margin-tiers/recalculate', [MarginTierController::class, 'recalculate'])->name('margin-tiers.recalculate');
 
     // Pedidos
     Route::get('orders', [OrderAdminController::class, 'index'])->name('orders.index');

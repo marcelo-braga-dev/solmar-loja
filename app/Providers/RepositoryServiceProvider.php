@@ -6,10 +6,12 @@ namespace App\Providers;
 
 use App\Domains\Catalog\Contracts\BrandRepositoryInterface;
 use App\Domains\Catalog\Contracts\CategoryRepositoryInterface;
+use App\Domains\Catalog\Contracts\MarginTierRepositoryInterface;
 use App\Domains\Catalog\Contracts\ProductRepositoryInterface;
 use App\Domains\Catalog\Contracts\SolarKitSpecificationRepositoryInterface;
 use App\Domains\Catalog\Repositories\EloquentBrandRepository;
 use App\Domains\Catalog\Repositories\EloquentCategoryRepository;
+use App\Domains\Catalog\Repositories\EloquentMarginTierRepository;
 use App\Domains\Catalog\Repositories\EloquentProductRepository;
 use App\Domains\Catalog\Repositories\EloquentSolarKitSpecificationRepository;
 use App\Domains\Integrations\Contracts\AppSolarClientInterface;
@@ -27,6 +29,7 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(BrandRepositoryInterface::class, EloquentBrandRepository::class);
         $this->app->bind(ProductRepositoryInterface::class, EloquentProductRepository::class);
         $this->app->bind(SolarKitSpecificationRepositoryInterface::class, EloquentSolarKitSpecificationRepository::class);
+        $this->app->bind(MarginTierRepositoryInterface::class, EloquentMarginTierRepository::class);
 
         // ERP integration — troque HttpErpClient pela implementação real quando tiver credenciais
         $this->app->bind(ErpClientInterface::class, HttpErpClient::class);

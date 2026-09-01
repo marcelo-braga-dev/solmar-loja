@@ -26,7 +26,7 @@ final class Product extends Model
 
     protected $fillable = [
         'uuid', 'name', 'slug', 'sku', 'short_description', 'description',
-        'price_cents', 'compare_at_price_cents', 'cost_cents',
+        'price_cents', 'compare_at_price_cents', 'cost_cents', 'kit_power_kwp',
         'status', 'brand_id', 'weight_grams', 'length_mm', 'width_mm', 'height_mm',
         'specifications', 'featured', 'meta_title', 'meta_description',
         'external_id', 'synced_at', 'published_at',
@@ -41,6 +41,7 @@ final class Product extends Model
         'price_cents' => 'integer',
         'compare_at_price_cents' => 'integer',
         'cost_cents' => 'integer',
+        'kit_power_kwp' => 'float',
         'weight_grams' => 'integer',
         'length_mm' => 'integer',
         'width_mm' => 'integer',

@@ -161,10 +161,11 @@ exponencial em `429`/`5xx`; `401` e `404`/`422` falham imediatamente (sem retry)
 |---|---|---|
 | `sku` | `products.sku`, `products.external_id`, `solar_kit_specifications.supplier_sku` | chave de upsert |
 | `nome` | `products.name` | |
-| `preco_venda` | `products.price_cents`, `solar_kit_specifications.supplier_sale_price_cents` | reais × 100 |
-| `preco_custo` | `products.cost_cents`, `solar_kit_specifications.supplier_cost_price_cents` | reais × 100, nunca exposto na loja |
+| `preco_venda` | `solar_kit_specifications.supplier_sale_price_cents` | reais × 100 — **não** define mais `products.price_cents` diretamente, só serve de rede de segurança se não houver faixa de margem cadastrada; ver "Precificação por margem (kWp)" |
+| `preco_custo` | `products.cost_cents`, `solar_kit_specifications.supplier_cost_price_cents` | reais × 100, nunca exposto na loja — base do cálculo de `price_cents` por margem |
 | `disponivel` | `solar_kit_specifications.supplier_available`, `products.status` | fonte de verdade da visibilidade na loja — ver "Estratégia de sincronização" |
-| `potencia_kit_kwp`, `tensao`, `estrutura`, `fornecedor` | `solar_kit_specifications.*` | |
+| `potencia_kit_kwp` | `solar_kit_specifications.kit_power_kwp`, `products.kit_power_kwp` | usada pela faixa de margem de venda — ver "Precificação por margem (kWp)" |
+| `tensao`, `estrutura`, `fornecedor` | `solar_kit_specifications.*` | |
 | `marca_inversor(_logo/_imagem)`, `potencia_inversor` | `solar_kit_specifications.inverter_*`, `Brand` (find-or-create), `ProductImage` (`tag=inverter`) | |
 | `marca_painel(_logo/_imagem)`, `potencia_painel` | `solar_kit_specifications.panel_*`, `Brand` (find-or-create, prioridade sobre inversor como marca primária do produto), `ProductImage` (`tag=panel`) | |
 | `componentes` | `solar_kit_specifications.components_html` | sanitizado via `HtmlSanitizer::sanitizeTable()` |
@@ -187,6 +188,17 @@ exponencial em `429`/`5xx`; `401` e `404`/`422` falham imediatamente (sem retry)
   em que o item aparecer no feed do AppSolar. Produtos que somem inteiramente do feed (não
   aparecem nem como indisponíveis) continuam sendo arquivados apenas na sync completa, via
   `synced_at` desatualizado (ponto anterior).
+
+### Precificação por margem (kWp)
+
+Desde 2026-09-01, `price_cents` **não vem mais direto do `preco_venda`** da API (nem do
+AppSolar, nem do ERP genérico — seção 1). O preço de venda é calculado pela loja como
+`cost_cents + margem`, onde a margem é escolhida pela faixa de potência (`kit_power_kwp`) do
+kit em `margin_tiers` (CRUD em `/admin/margin-tiers`). Ver `MarginPricingService`
+(`app/Domains/Catalog/Services/MarginPricingService.php`) para a lógica completa (faixa exata,
+fallback pela faixa mais próxima em gaps, cache, recálculo automático via
+`RecalculateKitPricesJob` ao alterar uma faixa). Enquanto nenhuma faixa estiver cadastrada, o
+preço da integração é usado como rede de segurança.
 
 ### Painel Admin
 
