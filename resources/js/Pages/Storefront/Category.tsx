@@ -93,7 +93,7 @@ export default function CategoryPage({ category, products, brands, facets, filte
     };
 
     const activeFilterCount = Object.entries(filters)
-        .filter(([key, value]) => key !== 'attrs' && key !== 'categories' && Boolean(value)).length
+        .filter(([key, value]) => key !== 'attrs' && key !== 'categories' && key !== 'sort' && Boolean(value)).length
         + (filters.attrs?.length ?? 0)
         + (selectedCategoryIds.length > 1 ? selectedCategoryIds.length : 0);
 

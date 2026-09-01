@@ -44,6 +44,10 @@ final class CategoryController extends Controller
             $selectedCategoryIds = [$category->id];
         }
 
+        // Categoria de kits geradores: por padrão, mostrar os mais baratos primeiro
+        $defaultSort = $category->slug === 'geradores-fotovoltaicos' ? 'price_asc' : 'relevance';
+        $sortBy = $request->string('sort')->value() ?: $defaultSort;
+
         $filter = new ProductFilterData(
             q: $request->string('q')->value() ?: null,
             categoryId: $category->id,
@@ -52,7 +56,7 @@ final class CategoryController extends Controller
             priceMax: $request->integer('price_max') ?: null,
             inStock: $request->boolean('in_stock'),
             onSale: $request->boolean('on_sale'),
-            sortBy: $request->string('sort')->value() ?: 'relevance',
+            sortBy: $sortBy,
             perPage: 24,
             attributeValueIds: $attributeValueIds,
             categoryIds: $selectedCategoryIds,
@@ -95,7 +99,7 @@ final class CategoryController extends Controller
                 'price_max' => $request->integer('price_max') ?: null,
                 'in_stock' => $request->boolean('in_stock') ?: null,
                 'on_sale' => $request->boolean('on_sale') ?: null,
-                'sort' => $request->string('sort')->value() ?: null,
+                'sort' => $request->string('sort')->value() ?: ($defaultSort !== 'relevance' ? $defaultSort : null),
                 'q' => $request->string('q')->value() ?: null,
                 'attrs' => $attributeValueIds !== [] ? $attributeValueIds : null,
                 'categories' => $selectedCategoryIds !== [] ? $selectedCategoryIds : null,
