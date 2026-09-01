@@ -1,9 +1,10 @@
-import { type ReactNode, type ElementType, useState, useCallback } from 'react';
+import { type ReactNode, type ElementType, useState, useCallback, useEffect } from 'react';
 import {
     Box, AppBar, Toolbar, Typography, Drawer, List, ListItem,
     ListItemText, ListItemButton, ListItemIcon, CssBaseline,
     IconButton, useTheme, useMediaQuery, Avatar, Menu,
     MenuItem, Tooltip, Badge, Chip, Popover, Divider, CircularProgress,
+    Snackbar, Alert,
     alpha,
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -141,7 +142,7 @@ interface Notification {
 }
 
 export default function AdminLayout({ children, title = 'Admin', breadcrumbs }: Props) {
-    const { auth, notifyCount, branding } = usePage<SharedProps>().props;
+    const { auth, notifyCount, branding, flash } = usePage<SharedProps>().props;
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -149,7 +150,15 @@ export default function AdminLayout({ children, title = 'Admin', breadcrumbs }: 
     const [notifyAnchor, setNotifyAnchor] = useState<null | HTMLElement>(null);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [notifyLoading, setNotifyLoading] = useState(false);
+    const [flashOpen, setFlashOpen] = useState(false);
     const currentPath = window.location.pathname;
+
+    const flashMessage = flash?.success ?? flash?.error ?? flash?.warning ?? flash?.info ?? null;
+    const flashSeverity = flash?.success ? 'success' : flash?.error ? 'error' : flash?.warning ? 'warning' : 'info';
+
+    useEffect(() => {
+        if (flashMessage) setFlashOpen(true);
+    }, [flashMessage]);
 
     const fetchNotifications = useCallback(async () => {
         setNotifyLoading(true);
@@ -550,6 +559,18 @@ export default function AdminLayout({ children, title = 'Admin', breadcrumbs }: 
                     {children}
                 </Box>
             </Box>
+
+            {/* Feedback global de ações (flash da sessão) */}
+            <Snackbar
+                open={flashOpen && !!flashMessage}
+                autoHideDuration={6000}
+                onClose={() => setFlashOpen(false)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert onClose={() => setFlashOpen(false)} severity={flashSeverity} variant="filled" sx={{ boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+                    {flashMessage}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

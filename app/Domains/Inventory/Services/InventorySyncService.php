@@ -118,6 +118,7 @@ final class InventorySyncService
         $product = Product::where('external_id', $data->externalId)
             ->orWhere('sku', $data->sku)
             ->first();
+        $isNewProduct = $product === null;
         $categoryId = $this->resolveCategoryId($data->categoryName);
 
         // O ERP é a fonte de verdade para visibilidade: ativo publica automaticamente,
@@ -179,8 +180,12 @@ final class InventorySyncService
         // Sincroniza estoque
         $this->stock->syncFromErp($product, $data);
 
-        // Sincroniza galeria de imagens vinda do ERP
-        $this->syncImages($product, $data->imageUrls);
+        // Galeria de imagens: só baixa/recria no primeiro sync do produto. Refazer isso em
+        // toda sincronização (apagar + reinserir N registros por produto) é o maior custo do
+        // sync de estoque e as fotos de um kit já cadastrado raramente mudam no distribuidor.
+        if ($isNewProduct) {
+            $this->syncImages($product, $data->imageUrls);
+        }
 
         // Sincroniza atributos filtráveis (marca do inversor/painel, estrutura, tensão)
         $this->syncAttributes($product, $data->specifications);

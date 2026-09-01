@@ -33,6 +33,18 @@ export interface MarginTier {
     is_active: boolean;
 }
 
+export interface MarginRecalculationLog {
+    id: number;
+    status: 'running' | 'success' | 'failed' | string;
+    status_label: string;
+    started_at: string;
+    finished_at: string | null;
+    updated_items: number;
+    total_items: number;
+    notes: string | null;
+    errors: string | null;
+}
+
 export interface ProductImage {
     id?: number;
     url: string;

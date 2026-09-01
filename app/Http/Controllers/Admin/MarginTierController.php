@@ -11,6 +11,7 @@ use App\Http\Requests\Admin\StoreMarginTierRequest;
 use App\Http\Requests\Admin\UpdateMarginTierRequest;
 use App\Jobs\RecalculateKitPricesJob;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,7 +32,35 @@ final class MarginTierController extends Controller
                 'is_active' => $tier->is_active,
             ]),
             'hasActiveTiers' => $this->pricing->activeTiers()->isNotEmpty(),
+            'recalculationLogs' => $this->recalculationLogs(),
         ]);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function recalculationLogs(): array
+    {
+        return DB::table('sync_logs')
+            ->where('source', RecalculateKitPricesJob::LOG_SOURCE)
+            ->orderByDesc('started_at')
+            ->limit(10)
+            ->get()
+            ->map(fn ($log) => [
+                'id' => $log->id,
+                'status' => $log->status,
+                'status_label' => match ($log->status) {
+                    'success' => 'Concluído',
+                    'failed' => 'Falhou',
+                    'running' => 'Processando...',
+                    default => $log->status,
+                },
+                'started_at' => $log->started_at,
+                'finished_at' => $log->finished_at,
+                'updated_items' => $log->updated_items,
+                'total_items' => $log->total_items,
+                'notes' => $log->notes,
+                'errors' => $log->errors,
+            ])
+            ->all();
     }
 
     public function store(StoreMarginTierRequest $request): RedirectResponse

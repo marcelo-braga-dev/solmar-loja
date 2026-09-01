@@ -4,19 +4,33 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     TextField, FormControlLabel, Switch, Tooltip, Alert, InputAdornment,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+    CircularProgress,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import type { PageProps } from '@inertiajs/react';
-import type { MarginTier, PaginatedData } from '@/Types/catalog';
+import type { MarginTier, MarginRecalculationLog, PaginatedData } from '@/Types/catalog';
 
 interface Props extends PageProps {
     tiers: PaginatedData<MarginTier>;
     hasActiveTiers: boolean;
+    recalculationLogs: MarginRecalculationLog[];
+}
+
+function formatDateTime(value: string | null): string {
+    if (!value) return '—';
+    return new Date(value.replace(' ', 'T')).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
+}
+
+function statusColor(status: string): 'success' | 'error' | 'info' | 'default' {
+    if (status === 'success') return 'success';
+    if (status === 'failed') return 'error';
+    if (status === 'running') return 'info';
+    return 'default';
 }
 
 interface TierFormData {
@@ -32,12 +46,31 @@ function formatKwp(value: number | null): string {
     return value === null ? '∞' : `${value} kWp`;
 }
 
-export default function MarginTiersIndex({ tiers, hasActiveTiers }: Props) {
+export default function MarginTiersIndex({ tiers, hasActiveTiers, recalculationLogs }: Props) {
     const [createOpen, setCreateOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<MarginTier | null>(null);
+    const [recalculating, setRecalculating] = useState(false);
 
     const createForm = useForm<TierFormData>(emptyForm);
     const editForm = useForm<TierFormData>(emptyForm);
+
+    const lastLog = recalculationLogs[0] ?? null;
+    const isRunning = lastLog?.status === 'running';
+
+    // Enquanto o último recálculo estiver "processando", busca o status atualizado a cada 3s
+    // (o job roda em fila/Horizon — não há resposta síncrona a esperar). Usa setInterval (não
+    // setTimeout) porque "isRunning" não muda de valor entre um poll e outro enquanto o job
+    // segue rodando — um setTimeout preso a essas dependências nunca seria reagendado e o
+    // polling morreria depois da 1ª tentativa, mesmo com o job ainda em andamento.
+    useEffect(() => {
+        if (!isRunning) return;
+
+        const interval = setInterval(() => {
+            router.reload({ only: ['recalculationLogs'], preserveScroll: true });
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [isRunning]);
 
     const openEdit = (tier: MarginTier) => {
         setEditTarget(tier);
@@ -50,7 +83,16 @@ export default function MarginTiersIndex({ tiers, hasActiveTiers }: Props) {
     };
 
     const recalculate = () => {
-        router.post('/admin/margin-tiers/recalculate', {}, { preserveScroll: true });
+        setRecalculating(true);
+        router.post('/admin/margin-tiers/recalculate', {}, {
+            preserveScroll: true,
+            onFinish: () => setRecalculating(false),
+            onSuccess: () => {
+                // O job roda em fila — o redirect chega antes do worker registrar o "running".
+                // Confere de novo em 2s para pegar a entrada de histórico assim que ela existir.
+                setTimeout(() => router.reload({ only: ['recalculationLogs'], preserveScroll: true }), 2000);
+            },
+        });
     };
 
     return (
@@ -71,13 +113,37 @@ export default function MarginTiersIndex({ tiers, hasActiveTiers }: Props) {
                     </Alert>
                 )}
 
-                <Stack direction="row" spacing={1} sx={{ justifyContent: 'flex-end' }}>
-                    <Button variant="outlined" startIcon={<RefreshIcon />} onClick={recalculate}>
-                        Recalcular preços agora
-                    </Button>
-                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
-                        Nova Faixa
-                    </Button>
+                {isRunning && (
+                    <Alert severity="info" icon={<CircularProgress size={18} />}>
+                        Recalculando preços dos kits em segundo plano — iniciado em {formatDateTime(lastLog!.started_at)}.
+                        Esta lista é atualizada automaticamente.
+                    </Alert>
+                )}
+
+                <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', rowGap: 1 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {lastLog
+                            ? (lastLog.status === 'success'
+                                ? `Último recálculo: ${formatDateTime(lastLog.finished_at)} — ${lastLog.updated_items} kit(s) atualizado(s)${lastLog.notes ? ` · ${lastLog.notes}` : ''}`
+                                : lastLog.status === 'failed'
+                                    ? `Último recálculo falhou em ${formatDateTime(lastLog.finished_at)}.`
+                                    : `Recálculo em andamento desde ${formatDateTime(lastLog.started_at)}...`)
+                            : 'Nenhum recálculo executado ainda.'}
+                    </Typography>
+
+                    <Stack direction="row" spacing={1}>
+                        <Button
+                            variant="outlined"
+                            startIcon={recalculating || isRunning ? <CircularProgress size={16} /> : <RefreshIcon />}
+                            onClick={recalculate}
+                            disabled={recalculating || isRunning}
+                        >
+                            {recalculating ? 'Disparando...' : isRunning ? 'Processando...' : 'Recalcular preços agora'}
+                        </Button>
+                        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
+                            Nova Faixa
+                        </Button>
+                    </Stack>
                 </Stack>
             </Stack>
 
@@ -140,6 +206,59 @@ export default function MarginTiersIndex({ tiers, hasActiveTiers }: Props) {
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            {recalculationLogs.length > 0 && (
+                <>
+                    <Typography variant="subtitle2" sx={{ mt: 4, mb: 1.5, fontWeight: 700 }}>
+                        Histórico de Recálculos
+                    </Typography>
+                    <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ '& th': { fontWeight: 700, bgcolor: 'grey.50', fontSize: 13 } }}>
+                                    <TableCell>Status</TableCell>
+                                    <TableCell>Início</TableCell>
+                                    <TableCell>Fim</TableCell>
+                                    <TableCell align="right">Kits atualizados</TableCell>
+                                    <TableCell>Observação</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {recalculationLogs.map((log) => (
+                                    <TableRow key={log.id} hover sx={{ '&:last-child td': { border: 0 } }}>
+                                        <TableCell>
+                                            <Chip
+                                                label={log.status_label}
+                                                color={statusColor(log.status)}
+                                                size="small"
+                                                icon={log.status === 'running' ? <CircularProgress size={12} sx={{ color: 'inherit !important', ml: 1 }} /> : undefined}
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Typography variant="body2">{formatDateTime(log.started_at)}</Typography>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Typography variant="body2">{formatDateTime(log.finished_at)}</Typography>
+                                        </TableCell>
+                                        <TableCell align="right">
+                                            <Typography variant="body2">
+                                                {log.status === 'running' ? '—' : `${log.updated_items} / ${log.total_items}`}
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                                {log.status === 'failed' && log.errors
+                                                    ? (JSON.parse(log.errors)?.fatal ?? 'Erro desconhecido')
+                                                    : (log.notes ?? '—')}
+                                            </Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </>
+            )}
 
             {/* Create */}
             <Dialog open={createOpen} onClose={() => { setCreateOpen(false); createForm.reset(); createForm.clearErrors(); }} maxWidth="xs" fullWidth>
