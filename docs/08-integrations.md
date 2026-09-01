@@ -163,7 +163,7 @@ exponencial em `429`/`5xx`; `401` e `404`/`422` falham imediatamente (sem retry)
 | `nome` | `products.name` | |
 | `preco_venda` | `products.price_cents`, `solar_kit_specifications.supplier_sale_price_cents` | reais × 100 |
 | `preco_custo` | `products.cost_cents`, `solar_kit_specifications.supplier_cost_price_cents` | reais × 100, nunca exposto na loja |
-| `disponivel` | `solar_kit_specifications.supplier_available` | API só retorna ativos; mantido para o futuro |
+| `disponivel` | `solar_kit_specifications.supplier_available`, `products.status` | fonte de verdade da visibilidade na loja — ver "Estratégia de sincronização" |
 | `potencia_kit_kwp`, `tensao`, `estrutura`, `fornecedor` | `solar_kit_specifications.*` | |
 | `marca_inversor(_logo/_imagem)`, `potencia_inversor` | `solar_kit_specifications.inverter_*`, `Brand` (find-or-create), `ProductImage` (`tag=inverter`) | |
 | `marca_painel(_logo/_imagem)`, `potencia_painel` | `solar_kit_specifications.panel_*`, `Brand` (find-or-create, prioridade sobre inversor como marca primária do produto), `ProductImage` (`tag=panel`) | |
@@ -179,8 +179,14 @@ exponencial em `429`/`5xx`; `401` e `404`/`422` falham imediatamente (sem retry)
   rodada — ou seja, saíram do feed do distribuidor.
 - **Incremental (`appsolar:sync`):** usa `atualizados_desde` com a data de início da
   última sync bem-sucedida (`success`/`partial`), agendada de hora em hora.
-- Produtos novos sempre entram como `draft` — publicação no catálogo é decisão manual do
-  admin/manager.
+- **O ERP é a fonte de verdade para visibilidade na loja.** A cada item processado (completa
+  ou incremental), o campo `disponivel` da API define `products.status` diretamente:
+  `disponivel: true` → `published` (define `published_at` na primeira publicação),
+  `disponivel: false` → `archived`. Isso vale tanto para produtos novos quanto existentes —
+  **uma alteração manual de status feita no admin é sobrescrita na próxima sincronização**
+  em que o item aparecer no feed do AppSolar. Produtos que somem inteiramente do feed (não
+  aparecem nem como indisponíveis) continuam sendo arquivados apenas na sync completa, via
+  `synced_at` desatualizado (ponto anterior).
 
 ### Painel Admin
 
