@@ -166,19 +166,26 @@ final class AppSolarProductSyncService
         $product = $this->products->findBySku($item->sku);
         $wasCreated = $product === null;
 
+        // O ERP é a fonte de verdade para visibilidade do kit: "disponível" publica
+        // automaticamente, "indisponível" arquiva (some da loja, sem apagar histórico/pedidos).
+        $status = $item->available ? ProductStatus::Published : ProductStatus::Archived;
+
         if ($product === null) {
             $product = $this->products->create(new ProductData(
                 name: $item->name,
                 slug: Str::slug($item->name).'-'.Str::lower(Str::random(6)),
                 sku: $item->sku,
                 priceCents: $priceCents,
-                status: ProductStatus::Draft,
+                status: $status,
                 costCents: $costCents,
                 brandId: $brandId,
                 specifications: $specifications,
                 externalId: $item->sku,
             ));
-            $product->update(['synced_at' => now()]);
+            $product->update([
+                'synced_at' => now(),
+                'published_at' => $status === ProductStatus::Published ? now() : null,
+            ]);
         } else {
             $product = $this->products->updateAttributes($product, [
                 'name' => $item->name,
@@ -188,6 +195,8 @@ final class AppSolarProductSyncService
                 'specifications' => $specifications,
                 'external_id' => $item->sku,
                 'synced_at' => now(),
+                'status' => $status,
+                'published_at' => $status === ProductStatus::Published ? ($product->published_at ?? now()) : $product->published_at,
             ]);
         }
 

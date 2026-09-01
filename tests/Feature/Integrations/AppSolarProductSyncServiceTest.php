@@ -91,7 +91,8 @@ it('creates a new product with full solar kit specification on first sync', func
     expect($product->name)->toBe('Gerador solar deye 2,22 kwp mon. 220v s/estrutura (3k/555w)');
     expect($product->price_cents)->toBe(551915);
     expect($product->cost_cents)->toBe(380631);
-    expect($product->status)->toBe(ProductStatus::Draft);
+    expect($product->status)->toBe(ProductStatus::Published);
+    expect($product->published_at)->not->toBeNull();
     expect($product->external_id)->toBe('278327');
     expect($product->brand?->name)->toBe('Jinko');
 
@@ -129,11 +130,29 @@ it('updates an existing product instead of duplicating on second sync', function
     expect($product->price_cents)->toBe(600000);
 });
 
-it('preserves a manually published status when updating price', function (): void {
+it('archives an existing product when the ERP marks it unavailable', function (): void {
+    makeSyncService(new FakeAppSolarClient([makeAppSolarProduct()]))->syncFull();
+    expect(Product::where('sku', '278327')->first()->status)->toBe(ProductStatus::Published);
+
+    makeSyncService(new FakeAppSolarClient([makeAppSolarProduct(['disponivel' => false])]))->syncFull();
+
+    expect(Product::where('sku', '278327')->first()->status)->toBe(ProductStatus::Archived);
+});
+
+it('republishes an archived kit automatically once it is available again in the ERP', function (): void {
+    makeSyncService(new FakeAppSolarClient([makeAppSolarProduct(['disponivel' => false])]))->syncFull();
+    expect(Product::where('sku', '278327')->first()->status)->toBe(ProductStatus::Archived);
+
+    makeSyncService(new FakeAppSolarClient([makeAppSolarProduct(['disponivel' => true])]))->syncFull();
+
+    expect(Product::where('sku', '278327')->first()->status)->toBe(ProductStatus::Published);
+});
+
+it('overrides a manual status change on the next sync, since the ERP is the source of truth for visibility', function (): void {
     $service = makeSyncService(new FakeAppSolarClient([makeAppSolarProduct()]));
     $service->syncFull();
 
-    Product::where('sku', '278327')->update(['status' => ProductStatus::Published]);
+    Product::where('sku', '278327')->update(['status' => ProductStatus::Draft]);
 
     makeSyncService(new FakeAppSolarClient([makeAppSolarProduct(['preco_venda' => 7000.00])]))->syncFull();
 
@@ -143,7 +162,7 @@ it('preserves a manually published status when updating price', function (): voi
 it('archives products no longer returned by a full sync', function (): void {
     makeSyncService(new FakeAppSolarClient([makeAppSolarProduct()]))->syncFull();
 
-    expect(Product::where('sku', '278327')->first()->status)->toBe(ProductStatus::Draft);
+    expect(Product::where('sku', '278327')->first()->status)->toBe(ProductStatus::Published);
 
     // Avança o relógio para garantir que synced_at da rodada anterior fique no passado.
     CarbonImmutable::setTestNow(CarbonImmutable::now()->addMinute());

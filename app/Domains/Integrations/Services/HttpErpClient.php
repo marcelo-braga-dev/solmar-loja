@@ -6,6 +6,7 @@ namespace App\Domains\Integrations\Services;
 
 use App\Domains\Inventory\Contracts\ErpClientInterface;
 use App\Domains\Inventory\Data\ErpProductData;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -56,12 +57,12 @@ final class HttpErpClient implements ErpClientInterface
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function (): Collection {
             $products = collect();
-            $page     = 1;
+            $page = 1;
 
             do {
                 try {
                     $response = $this->http()->get('/produtos', [
-                        'page'     => $page,
+                        'page' => $page,
                         'per_page' => 100,
                     ]);
 
@@ -82,11 +83,14 @@ final class HttpErpClient implements ErpClientInterface
                     $hasMore = $this->hasMorePages($data, $page);
                     $page++;
                 } catch (RequestException $e) {
+                    // Nunca retorna um catálogo parcial em silêncio: uma página que falha faria a
+                    // sincronização enxergar produtos ainda ativos como "sumidos" e arquivá-los à toa.
                     Log::error('ERP fetchProducts failed', [
-                        'page'  => $page,
+                        'page' => $page,
                         'error' => $e->getMessage(),
                     ]);
-                    break;
+
+                    throw $e;
                 }
             } while ($hasMore);
 
@@ -94,9 +98,9 @@ final class HttpErpClient implements ErpClientInterface
         });
     }
 
-    private function http(): \Illuminate\Http\Client\PendingRequest
+    private function http(): PendingRequest
     {
-        $apiKey  = config('services.erp.api_key', '');
+        $apiKey = config('services.erp.api_key', '');
         $baseUrl = config('services.erp.base_url', '');
         $timeout = (int) config('services.erp.timeout', 30);
 
@@ -105,8 +109,8 @@ final class HttpErpClient implements ErpClientInterface
             ->retry(2, 500)
             ->withHeaders([
                 'Authorization' => "Bearer {$apiKey}",
-                'Accept'        => 'application/json',
-                'Content-Type'  => 'application/json',
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
             ]);
     }
 
@@ -114,7 +118,7 @@ final class HttpErpClient implements ErpClientInterface
      * Extrai a lista de produtos da resposta.
      * Adapte conforme o formato da API do seu distribuidor.
      *
-     * @param array<string, mixed> $response
+     * @param  array<string, mixed>  $response
      * @return array<int, array<string, mixed>>
      */
     private function extractItems(array $response): array
@@ -125,11 +129,11 @@ final class HttpErpClient implements ErpClientInterface
     /**
      * Verifica se há mais páginas para buscar.
      *
-     * @param array<string, mixed> $response
+     * @param  array<string, mixed>  $response
      */
     private function hasMorePages(array $response, int $currentPage): bool
     {
-        $total   = $response['meta']['total'] ?? $response['total'] ?? null;
+        $total = $response['meta']['total'] ?? $response['total'] ?? null;
         $perPage = $response['meta']['per_page'] ?? 100;
 
         if ($total === null) {
@@ -143,13 +147,13 @@ final class HttpErpClient implements ErpClientInterface
      * Mapeia um produto da API do distribuidor para ErpProductData.
      * ADAPTE este método para o formato da API do seu distribuidor.
      *
-     * @param array<string, mixed> $item
+     * @param  array<string, mixed>  $item
      */
     private function mapProduct(array $item): ?ErpProductData
     {
         $externalId = (string) ($item['id'] ?? $item['codigo'] ?? $item['sku'] ?? '');
-        $sku        = (string) ($item['sku'] ?? $item['codigo'] ?? $externalId);
-        $name       = (string) ($item['name'] ?? $item['nome'] ?? $item['descricao'] ?? '');
+        $sku = (string) ($item['sku'] ?? $item['codigo'] ?? $externalId);
+        $name = (string) ($item['name'] ?? $item['nome'] ?? $item['descricao'] ?? '');
 
         if ($externalId === '' || $name === '') {
             return null;
@@ -157,28 +161,30 @@ final class HttpErpClient implements ErpClientInterface
 
         // Preço: o ERP sempre informa em reais (int ou float — JSON só marca float
         // quando há ponto decimal, ex: 7418 vs 899.90 — ambos são reais, nunca centavos)
-        $rawPrice   = $item['price'] ?? $item['preco'] ?? $item['preco_venda'] ?? $item['valor'] ?? 0;
+        $rawPrice = $item['price'] ?? $item['preco'] ?? $item['preco_venda'] ?? $item['valor'] ?? 0;
         $priceCents = (int) round(((float) $rawPrice) * 100);
 
-        $rawCompare   = $item['compare_price'] ?? $item['preco_de'] ?? null;
+        $rawCompare = $item['compare_price'] ?? $item['preco_de'] ?? null;
         $compareCents = $rawCompare !== null
             ? (int) round(((float) $rawCompare) * 100)
             : null;
 
-        // Edeltec não informa quantidade real, apenas o flag booleano "disponivel"
+        // Edeltec não informa quantidade real, apenas o flag booleano "disponivel", que
+        // também é a fonte de verdade para visibilidade do produto na loja (ver InventorySyncService).
+        $isActive = ! array_key_exists('disponivel', $item) || (bool) $item['disponivel'];
         $stock = array_key_exists('disponivel', $item)
-            ? ((bool) $item['disponivel'] ? self::AVAILABLE_STOCK_PLACEHOLDER : 0)
+            ? ($isActive ? self::AVAILABLE_STOCK_PLACEHOLDER : 0)
             : (int) ($item['stock'] ?? $item['estoque'] ?? $item['quantidade'] ?? 0);
 
         $specifications = array_filter([
-            'Potência do Kit'     => isset($item['potencia_kit_kwp']) ? $item['potencia_kit_kwp'].' kWp' : null,
-            'Tensão'              => $item['tensao'] ?? null,
-            'Marca do Inversor'   => $item['marca_inversor'] ?? null,
+            'Potência do Kit' => isset($item['potencia_kit_kwp']) ? $item['potencia_kit_kwp'].' kWp' : null,
+            'Tensão' => $item['tensao'] ?? null,
+            'Marca do Inversor' => $item['marca_inversor'] ?? null,
             'Potência do Inversor' => isset($item['potencia_inversor']) ? $item['potencia_inversor'].' kW' : null,
-            'Marca do Painel'     => $item['marca_painel'] ?? null,
-            'Potência do Painel'  => isset($item['potencia_painel']) ? $item['potencia_painel'].' W' : null,
-            'Estrutura'           => $item['estrutura'] ?? null,
-            'Fornecedor'          => $item['fornecedor'] ?? null,
+            'Marca do Painel' => $item['marca_painel'] ?? null,
+            'Potência do Painel' => isset($item['potencia_painel']) ? $item['potencia_painel'].' W' : null,
+            'Estrutura' => $item['estrutura'] ?? null,
+            'Fornecedor' => $item['fornecedor'] ?? null,
         ], fn ($value) => $value !== null);
 
         $categoryName = $item['categoria'] ?? $item['category'] ?? $item['categoria_nome'] ?? null;
@@ -208,6 +214,7 @@ final class HttpErpClient implements ErpClientInterface
             name: $name,
             priceCents: $priceCents,
             stockQuantity: $stock,
+            isActive: $isActive,
             compareAtPriceCents: $compareCents,
             weightGrams: isset($item['weight']) ? (int) ($item['weight'] * 1000) : null,
             description: $item['description'] ?? $item['descricao_completa'] ?? $item['observacoes'] ?? null,

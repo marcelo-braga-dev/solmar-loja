@@ -14,6 +14,7 @@ final class ErpProductData extends Data
         public readonly string $name,
         public readonly int $priceCents,
         public readonly int $stockQuantity,
+        public readonly bool $isActive = true,
         public readonly ?int $compareAtPriceCents = null,
         public readonly ?int $weightGrams = null,
         public readonly ?string $description = null,

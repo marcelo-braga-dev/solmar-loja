@@ -26,9 +26,9 @@ final class InventorySyncService
     /** Specifications do ERP que se tornam atributos filtráveis (specKey => attribute slug). */
     private const FILTERABLE_SPECS = [
         'Marca do Inversor' => 'marca-do-inversor',
-        'Marca do Painel'   => 'marca-do-painel',
-        'Estrutura'         => 'estrutura',
-        'Tensão'            => 'tensao',
+        'Marca do Painel' => 'marca-do-painel',
+        'Estrutura' => 'estrutura',
+        'Tensão' => 'tensao',
     ];
 
     /** @var array<string, int> Cache de categoria já resolvida/criada nesta execução do sync. */
@@ -49,17 +49,17 @@ final class InventorySyncService
 
     public function sync(): array
     {
-        $syncId  = Str::uuid()->toString();
+        $syncId = Str::uuid()->toString();
         $started = now();
-        $results = ['total' => 0, 'created' => 0, 'updated' => 0, 'errors' => 0, 'error_list' => []];
-        $this->categoryCache       = [];
-        $this->attributeCache      = [];
+        $results = ['total' => 0, 'created' => 0, 'updated' => 0, 'archived' => 0, 'errors' => 0, 'error_list' => []];
+        $this->categoryCache = [];
+        $this->attributeCache = [];
         $this->attributeValueCache = [];
 
         $logId = DB::table('sync_logs')->insertGetId([
-            'source'     => $this->client->name(),
+            'source' => $this->client->name(),
             'started_at' => $started,
-            'status'     => 'running',
+            'status' => 'running',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -74,29 +74,36 @@ final class InventorySyncService
                 } catch (Throwable $e) {
                     $results['errors']++;
                     $results['error_list'][] = [
-                        'sku'   => $item->sku,
+                        'sku' => $item->sku,
                         'error' => $e->getMessage(),
                     ];
                     Log::warning('Sync item failed', ['sku' => $item->sku, 'error' => $e->getMessage()]);
                 }
             }
 
+            // O ERP é a fonte de verdade do catálogo: kits que sumiram da última sincronização
+            // completa (sem erros) são arquivados automaticamente, deixando de aparecer na loja.
+            if ($results['errors'] === 0) {
+                $results['archived'] = $this->products->archiveNotSyncedFromErpSince($started);
+            }
+
             DB::table('sync_logs')->where('id', $logId)->update([
-                'status'        => $results['errors'] > 0 ? 'partial' : 'success',
-                'finished_at'   => now(),
-                'total_items'   => $results['total'],
+                'status' => $results['errors'] > 0 ? 'partial' : 'success',
+                'finished_at' => now(),
+                'total_items' => $results['total'],
                 'created_items' => $results['created'],
                 'updated_items' => $results['updated'],
-                'error_items'   => $results['errors'],
-                'errors'        => $results['errors'] > 0 ? json_encode($results['error_list']) : null,
-                'updated_at'    => now(),
+                'error_items' => $results['errors'],
+                'archived_items' => $results['archived'],
+                'errors' => $results['errors'] > 0 ? json_encode($results['error_list']) : null,
+                'updated_at' => now(),
             ]);
         } catch (Throwable $e) {
             DB::table('sync_logs')->where('id', $logId)->update([
-                'status'      => 'failed',
+                'status' => 'failed',
                 'finished_at' => now(),
-                'errors'      => json_encode(['fatal' => $e->getMessage()]),
-                'updated_at'  => now(),
+                'errors' => json_encode(['fatal' => $e->getMessage()]),
+                'updated_at' => now(),
             ]);
             Log::error('Inventory sync failed', ['error' => $e->getMessage()]);
         }
@@ -106,19 +113,22 @@ final class InventorySyncService
 
     private function processItem(ErpProductData $data, array &$results): void
     {
-        $product    = Product::where('external_id', $data->externalId)
+        $product = Product::where('external_id', $data->externalId)
             ->orWhere('sku', $data->sku)
             ->first();
         $categoryId = $this->resolveCategoryId($data->categoryName);
 
+        // O ERP é a fonte de verdade para visibilidade: ativo publica automaticamente,
+        // inativo arquiva (some da loja, sem apagar histórico/pedidos já feitos).
+        $status = $data->isActive ? ProductStatus::Published : ProductStatus::Archived;
+
         if ($product === null) {
-            // Cria produto novo como draft
             $productData = new ProductData(
                 name: $data->name,
                 slug: Str::slug($data->name).'-'.Str::random(4),
                 sku: $data->sku,
                 priceCents: $data->priceCents,
-                status: ProductStatus::Draft,
+                status: $status,
                 description: $data->description,
                 compareAtPriceCents: $data->compareAtPriceCents,
                 weightGrams: $data->weightGrams,
@@ -128,16 +138,22 @@ final class InventorySyncService
             );
 
             $product = $this->products->create($productData);
+            $product->update([
+                'synced_at' => now(),
+                'published_at' => $status === ProductStatus::Published ? now() : null,
+            ]);
             $results['created']++;
         } else {
-            // Atualiza preço, estoque e dados do ERP (preserva status e outros campos locais)
+            // Atualiza preço, estoque, status e demais dados vindos do ERP
             $product->update([
-                'price_cents'            => $data->priceCents,
+                'price_cents' => $data->priceCents,
                 'compare_at_price_cents' => $data->compareAtPriceCents,
-                'weight_grams'           => $data->weightGrams ?? $product->weight_grams,
-                'specifications'         => $data->specifications ?? $product->specifications,
-                'external_id'            => $data->externalId,
-                'synced_at'              => now(),
+                'weight_grams' => $data->weightGrams ?? $product->weight_grams,
+                'specifications' => $data->specifications ?? $product->specifications,
+                'external_id' => $data->externalId,
+                'synced_at' => now(),
+                'status' => $status,
+                'published_at' => $status === ProductStatus::Published ? ($product->published_at ?? now()) : $product->published_at,
             ]);
 
             if ($categoryId !== null) {
@@ -177,10 +193,10 @@ final class InventorySyncService
         foreach ($imageUrls as $position => $url) {
             ProductImage::create([
                 'product_id' => $product->id,
-                'path'       => $url,
-                'alt'        => $product->name,
-                'position'   => $position,
-                'is_cover'   => $position === 0 && ! $product->images()->where('is_cover', true)->exists(),
+                'path' => $url,
+                'alt' => $product->name,
+                'position' => $position,
+                'is_cover' => $position === 0 && ! $product->images()->where('is_cover', true)->exists(),
             ]);
         }
     }
@@ -193,7 +209,7 @@ final class InventorySyncService
         }
 
         $attributeIds = [];
-        $valueIds     = [];
+        $valueIds = [];
 
         foreach (self::FILTERABLE_SPECS as $specKey => $attrSlug) {
             $value = $specifications[$specKey] ?? null;
@@ -202,9 +218,9 @@ final class InventorySyncService
                 continue;
             }
 
-            $attributeId    = $this->resolveAttributeId($attrSlug, $specKey);
+            $attributeId = $this->resolveAttributeId($attrSlug, $specKey);
             $attributeIds[] = $attributeId;
-            $valueIds[]     = $this->resolveAttributeValueId($attributeId, (string) $value);
+            $valueIds[] = $this->resolveAttributeValueId($attributeId, (string) $value);
         }
 
         if ($attributeIds === []) {
@@ -233,7 +249,7 @@ final class InventorySyncService
     private function resolveAttributeValueId(int $attributeId, string $value): int
     {
         $slug = Str::slug($value);
-        $key  = "{$attributeId}|{$slug}";
+        $key = "{$attributeId}|{$slug}";
 
         if (isset($this->attributeValueCache[$key])) {
             return $this->attributeValueCache[$key];

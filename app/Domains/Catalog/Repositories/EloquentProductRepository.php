@@ -7,9 +7,11 @@ namespace App\Domains\Catalog\Repositories;
 use App\Domains\Catalog\Contracts\ProductRepositoryInterface;
 use App\Domains\Catalog\Data\ProductData;
 use App\Domains\Catalog\Data\ProductFilterData;
+use App\Domains\Catalog\Enums\ProductStatus;
 use App\Domains\Catalog\Models\AttributeValue;
 use App\Domains\Catalog\Models\Category;
 use App\Domains\Catalog\Models\Product;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -242,6 +244,16 @@ final class EloquentProductRepository implements ProductRepositoryInterface
     public function delete(Product $product): void
     {
         $product->delete();
+    }
+
+    public function archiveNotSyncedFromErpSince(CarbonInterface $before): int
+    {
+        return Product::query()
+            ->whereNotNull('external_id')
+            ->whereDoesntHave('solarKitSpecification')
+            ->where('synced_at', '<', $before)
+            ->where('status', '!=', ProductStatus::Archived->value)
+            ->update(['status' => ProductStatus::Archived->value]);
     }
 
     /** @return array<string, mixed> */

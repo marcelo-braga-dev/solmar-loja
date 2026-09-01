@@ -7,6 +7,7 @@ namespace App\Domains\Catalog\Contracts;
 use App\Domains\Catalog\Data\ProductData;
 use App\Domains\Catalog\Data\ProductFilterData;
 use App\Domains\Catalog\Models\Product;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -59,4 +60,11 @@ interface ProductRepositoryInterface
     public function updateAttributes(Product $product, array $attributes): Product;
 
     public function delete(Product $product): void;
+
+    /**
+     * Arquiva produtos sincronizados via ERP genérico (http_erp) que não foram tocados
+     * desde `$before` — ou seja, sumiram do catálogo do ERP na última sincronização
+     * completa. Exclui kits geridos pela integração AppSolar (fonte independente).
+     */
+    public function archiveNotSyncedFromErpSince(CarbonInterface $before): int;
 }
