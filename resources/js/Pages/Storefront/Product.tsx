@@ -189,6 +189,22 @@ export default function ProductPage({ product, relatedProducts, frequentlyBought
                                 <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600, mt: 0.5 }}>
                                     {formatBRL(Math.round(product.price_cents * 0.95))} no Pix (5% off)
                                 </Typography>
+
+                                {auth.user?.is_admin && product.cost_cents != null && (
+                                    <Box sx={{
+                                        mt: 1.5, p: 1, display: 'inline-flex', gap: 1.5,
+                                        border: '1px dashed', borderColor: 'warning.main',
+                                        borderRadius: 1.5, bgcolor: 'warning.50',
+                                    }}>
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                            Custo do fornecedor: <strong>{formatBRL(product.cost_cents)}</strong>
+                                        </Typography>
+                                        <Divider orientation="vertical" flexItem />
+                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+                                            Margem aplicada: <strong>{product.margin_percent ?? '—'}%</strong>
+                                        </Typography>
+                                    </Box>
+                                )}
                             </Box>
 
                             {product.short_description && (

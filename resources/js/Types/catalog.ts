@@ -73,6 +73,8 @@ export interface Product {
     price_cents: number;
     compare_at_price_cents?: number;
     cost_cents?: number;
+    /** Margem realmente refletida em price_cents (só vem preenchida para admins). */
+    margin_percent?: number | null;
     status?: string;
     status_label?: string;
     status_color?: string;

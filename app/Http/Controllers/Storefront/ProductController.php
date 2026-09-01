@@ -43,6 +43,11 @@ final class ProductController extends Controller
             ->whereNull('variant_id')
             ->sum('quantity_available');
 
+        // Custo do fornecedor e margem aplicada são dados sensíveis de precificação —
+        // só entram no payload da página quando quem está logado é admin, nunca escondidos
+        // só no front (o JSON da página fica visível a qualquer visitante via view-source).
+        $isAdmin = (bool) auth()->user()?->isAdmin();
+
         return Inertia::render('Storefront/Product', [
             'product' => [
                 'id' => $product->id,
@@ -55,6 +60,8 @@ final class ProductController extends Controller
                 'compare_at_price_cents' => $product->compare_at_price_cents,
                 'has_discount' => $product->hasDiscount(),
                 'discount_percent' => $product->discountPercent(),
+                'cost_cents' => $isAdmin ? $product->cost_cents : null,
+                'margin_percent' => $isAdmin ? $this->appliedMarginPercent($product->cost_cents, $product->price_cents) : null,
                 'brand' => $product->brand ? ['name' => $product->brand->name, 'slug' => $product->brand->slug] : null,
                 'categories' => $product->categories->map(fn ($c) => ['name' => $c->name, 'slug' => $c->slug]),
                 'specifications' => $product->specifications,
@@ -101,5 +108,15 @@ final class ProductController extends Controller
                 'cover_image' => $p->coverImage()?->url(),
             ]),
         ]);
+    }
+
+    /** Margem realmente refletida no preço atual (pode divergir da faixa configurada se o preço foi ajustado manualmente). */
+    private function appliedMarginPercent(?int $costCents, int $priceCents): ?float
+    {
+        if ($costCents === null || $costCents <= 0) {
+            return null;
+        }
+
+        return round((($priceCents - $costCents) / $costCents) * 100, 1);
     }
 }

@@ -418,6 +418,10 @@ O preço de venda dos kits deixou de vir direto da integração (AppSolar/ERP) e
 
 ## Extras — Funcionalidades de Negócio
 
+### Custo/Margem Visível para Admin na Página do Produto
+- **`Storefront\ProductController@show`:** quando `auth()->user()?->isAdmin()`, inclui `cost_cents` (custo do fornecedor) e `margin_percent` (margem real refletida em `price_cents`, calculada como `(price - cost) / cost * 100`, não a configuração da faixa) no payload — `null` para visitante/cliente comum. Gate no backend, não só no front, porque o JSON da página Inertia é visível via view-source independente da UI
+- **`Storefront/Product.tsx`:** bloco discreto (borda tracejada `warning`) abaixo do preço de venda, visível só quando `auth.user?.is_admin` e `cost_cents` não for nulo
+
 ### Comparação de Produtos
 - **Hook:** `useComparison.ts` (localStorage, max 4, persist entre páginas)
 - **ComparisonBar:** fundo escuro, slots vazios indicativos, botão "Comparar (N)" habilitado com ≥2
