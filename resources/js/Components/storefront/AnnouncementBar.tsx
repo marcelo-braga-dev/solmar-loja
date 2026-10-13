@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import BoltIcon from '@mui/icons-material/Bolt';
 import HeadsetMicIcon from '@mui/icons-material/HeadsetMic';
 import VerifiedIcon from '@mui/icons-material/Verified';
 
 const MESSAGES = [
-    { icon: <LocalShippingIcon sx={{ fontSize: 14 }} />, text: 'Frete grátis em todo o Brasil para compras acima do valor mínimo' },
-    { icon: <BoltIcon sx={{ fontSize: 14 }} />, text: '⚡ Parcelamos em até 12x sem juros no cartão de crédito' },
     { icon: <VerifiedIcon sx={{ fontSize: 14 }} />, text: 'Todos os produtos com garantia do fabricante e nota fiscal' },
     { icon: <HeadsetMicIcon sx={{ fontSize: 14 }} />, text: '📞 Suporte técnico especializado em energia solar — seg a sex 8h–18h' },
 ];

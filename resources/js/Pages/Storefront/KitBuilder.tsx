@@ -349,9 +349,6 @@ export default function KitBuilder({ panels }: Props) {
                                             {formatBRL(totalCents)}
                                         </Typography>
                                     </Stack>
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        ou 12x de {formatBRL(Math.ceil(totalCents / 12))} sem juros
-                                    </Typography>
                                 </>
                             )}
                         </Paper>

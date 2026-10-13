@@ -82,10 +82,6 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
     );
 }
 
-function formatBRLShort(cents: number) {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(cents / 100);
-}
-
 const TESTIMONIALS = [
     { name: 'Roberto Alves', city: 'São Paulo, SP', text: 'Comprei um kit solar completo e a economia na conta de luz foi incrível. Em 4 anos já se pagou! Suporte técnico excelente.', rating: 5, product: 'Kit 5kWp On-Grid' },
     { name: 'Maria Fernanda', city: 'Belo Horizonte, MG', text: 'Atendimento impecável. Os painéis chegaram antes do prazo e a qualidade é superior. Recomendo para qualquer pessoa querendo energia solar.', rating: 5, product: 'Painel Solar 550W' },
@@ -111,18 +107,16 @@ const WHY_US = [
 const HOW_IT_WORKS = [
     { step: '01', icon: <BuildIcon />, title: 'Escolha ou monte seu kit', desc: 'Catálogo completo ou Kit Builder guiado passo a passo.' },
     { step: '02', icon: <BoltIcon />, title: 'Simule sua economia', desc: 'Veja o payback estimado antes de fechar a compra.' },
-    { step: '03', icon: <PaymentIcon />, title: 'Compre com segurança', desc: 'Pix, boleto ou cartão em até 12x sem juros.' },
+    { step: '03', icon: <PaymentIcon />, title: 'Compre com segurança', desc: 'Pix, boleto ou cartão de crédito.' },
     { step: '04', icon: <SolarPowerIcon />, title: 'Receba e gere energia', desc: 'Entrega rastreada e suporte na instalação do seu sistema.' },
 ];
 
 export default function Home({ featuredProducts, onSaleProducts, generatorProducts, brands, latestPosts }: Props) {
     const { branding } = usePage<SharedProps>().props;
-    const freeShippingMin = branding?.free_shipping_min_cents ?? 200000;
-    const freeShippingEnabled = branding?.free_shipping_enabled ?? true;
 
     const BENEFITS = [
-        { icon: <LocalShippingIcon />, title: 'Frete Grátis', desc: freeShippingEnabled ? `Acima de ${formatBRLShort(freeShippingMin)}` : 'Consulte condições' },
-        { icon: <PaymentIcon />,       title: 'Parcele em 12x', desc: 'Sem juros no cartão' },
+        { icon: <LocalShippingIcon />, title: 'Entrega Nacional', desc: 'Para todo o Brasil' },
+        { icon: <PaymentIcon />,       title: 'Pagamento Facilitado', desc: 'Pix, boleto ou cartão' },
         { icon: <VerifiedIcon />,      title: 'Garantia Total', desc: 'Produtos originais' },
         { icon: <HeadsetMicIcon />,    title: 'Suporte Solar', desc: 'Especialistas disponíveis' },
         { icon: <SecurityIcon />,      title: 'Compra Segura', desc: 'SSL & antifraude' },
@@ -220,8 +214,6 @@ export default function Home({ featuredProducts, onSaleProducts, generatorProduc
 
                             <Stack direction="row" spacing={3} sx={{ flexWrap: 'wrap', rowGap: 1, mb: 3 }}>
                                 {[
-                                    { icon: '✓', text: 'Frete Grátis' },
-                                    { icon: '✓', text: 'Parcele em 12x' },
                                     { icon: '✓', text: 'Entrega em todo Brasil' },
                                 ].map((item) => (
                                     <Stack key={item.text} direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
@@ -850,7 +842,7 @@ export default function Home({ featuredProducts, onSaleProducts, generatorProduc
                                 Formas de pagamento
                             </Typography>
                             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
-                                {['Pix', 'Boleto', 'Visa', 'Mastercard', 'Elo', 'Até 12x sem juros'].map((label) => (
+                                {['Pix', 'Boleto', 'Visa', 'Mastercard', 'Elo'].map((label) => (
                                     <Chip
                                         key={label}
                                         icon={<CreditCardIcon sx={{ fontSize: 16 }} />}

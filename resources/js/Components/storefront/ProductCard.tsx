@@ -9,7 +9,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import CheckIcon from '@mui/icons-material/Check';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import { useState } from 'react';
-import { formatBRL, formatInstallment } from '@/Lib/formatters';
+import { formatBRL } from '@/Lib/formatters';
 import { useComparison } from '@/Hooks/useComparison';
 import type { Product } from '@/Types/catalog';
 import type { SharedProps } from '@/Types/inertia';
@@ -217,9 +217,6 @@ export default function ProductCard({ product, loading = false, isFavorite = fal
                             }}
                         >
                             {formatBRL(product.price_cents)}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11 }}>
-                            {formatInstallment(product.price_cents)} sem juros
                         </Typography>
                     </Box>
                 </CardContent>

@@ -54,14 +54,11 @@ interface Props extends PageProps {
 
 const STEPS = ['Endereço', 'Entrega', 'Pagamento', 'Confirmação'];
 
-const FREE_SHIPPING_THRESHOLD = 30000_00; // R$ 30.000 (em centavos)
-
-function calcShippingOptions(cep: string, totalCents: number): ShippingOption[] {
+function calcShippingOptions(cep: string): ShippingOption[] {
     if (cep.replace(/\D/g, '').length < 8) return [];
-    const free = totalCents >= FREE_SHIPPING_THRESHOLD;
     return [
-        { name: 'PAC (Correios)', days: 8, price_cents: free ? 0 : 2990, free },
-        { name: 'SEDEX (Correios)', days: 3, price_cents: free ? 0 : 5990, free },
+        { name: 'PAC (Correios)', days: 8, price_cents: 2990, free: false },
+        { name: 'SEDEX (Correios)', days: 3, price_cents: 5990, free: false },
     ];
 }
 
@@ -119,7 +116,7 @@ export default function Checkout({ cart, addresses }: Props) {
     const handleCalculateShipping = () => {
         setLoadingShipping(true);
         setTimeout(() => {
-            const options = calcShippingOptions(data.cep, cart.total_cents);
+            const options = calcShippingOptions(data.cep);
             setShippingOptions(options);
             if (options.length > 0) {
                 setSelectedShipping(options[0]);
@@ -322,7 +319,7 @@ export default function Checkout({ cart, addresses }: Props) {
                                         {[
                                             { value: 'pix', label: 'Pix', desc: '5% de desconto — aprovação imediata', icon: <PixIcon /> },
                                             { value: 'boleto', label: 'Boleto Bancário', desc: 'Vence em 3 dias úteis', icon: <ReceiptIcon /> },
-                                            { value: 'credit_card', label: 'Cartão de Crédito', desc: 'Até 12x sem juros', icon: <CreditCardIcon /> },
+                                            { value: 'credit_card', label: 'Cartão de Crédito', desc: 'Visa, Mastercard, Elo e outros', icon: <CreditCardIcon /> },
                                         ].map((option) => (
                                             <Paper
                                                 key={option.value}

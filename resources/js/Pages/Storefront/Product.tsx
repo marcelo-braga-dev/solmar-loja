@@ -14,7 +14,6 @@ import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import ShareIcon from '@mui/icons-material/Share';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import { useState, useEffect, useRef } from 'react';
@@ -27,7 +26,7 @@ import SocialProof from '@/Components/storefront/SocialProof';
 import ShippingCalculator from '@/Components/storefront/ShippingCalculator';
 import Breadcrumb from '@/Components/storefront/Breadcrumb';
 import ProductCard from '@/Components/storefront/ProductCard';
-import { formatBRL, formatInstallment } from '@/Lib/formatters';
+import { formatBRL } from '@/Lib/formatters';
 import { useTrackView } from '@/Hooks/useRecentlyViewed';
 import type { SharedProps } from '@/Types/inertia';
 import type { PageProps } from '@inertiajs/react';
@@ -42,9 +41,7 @@ interface Props extends PageProps {
 }
 
 export default function ProductPage({ product, relatedProducts, frequentlyBought }: Props) {
-    const { auth, branding } = usePage<SharedProps>().props;
-    const freeShippingMin = branding?.free_shipping_min_cents ?? 200000;
-    const freeShippingEnabled = branding?.free_shipping_enabled ?? true;
+    const { auth } = usePage<SharedProps>().props;
 
     // Sticky bar visibility (aparece ao rolar além de 400px)
     const [showStickyBar, setShowStickyBar] = useState(false);
@@ -182,9 +179,6 @@ export default function ProductPage({ product, relatedProducts, frequentlyBought
                                 )}
                                 <Typography variant="h3" color="primary" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
                                     {formatBRL(product.price_cents)}
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-                                    ou {formatInstallment(product.price_cents)} sem juros
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600, mt: 0.5 }}>
                                     {formatBRL(Math.round(product.price_cents * 0.95))} no Pix (5% off)
@@ -389,17 +383,12 @@ export default function ProductPage({ product, relatedProducts, frequentlyBought
                             </Stack>
 
                             {/* Calculadora de Frete */}
-                            <ShippingCalculator
-                                weightGrams={product.weight_grams}
-                                freeShippingMin={freeShippingMin}
-                                productPriceCents={product.price_cents}
-                            />
+                            <ShippingCalculator weightGrams={product.weight_grams} />
 
                             {/* Garantias */}
                             <Paper elevation={0} sx={{ bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200', borderRadius: 2, p: 2 }}>
                                 <Stack spacing={1}>
                                     {[
-                                        ...(freeShippingEnabled ? [{ icon: <LocalShippingIcon />, text: `Frete Grátis para todo o Brasil em compras acima de ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(freeShippingMin / 100)}` }] : []),
                                         { icon: <VerifiedIcon />, text: 'Produto original com garantia do fabricante' },
                                     ].map((item, i) => (
                                         <Stack key={i} direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>

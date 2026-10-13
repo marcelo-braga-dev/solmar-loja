@@ -80,7 +80,7 @@ final class ProductImportController extends Controller
             '50',
             '1',
             'Painel Solar 550W Monocristalino',
-            'Compre painel solar 550W monocristalino com frete grátis.',
+            'Compre painel solar 550W monocristalino com garantia do fabricante.',
         ];
 
         $csv = implode(',', array_map(fn ($h) => "\"{$h}\"", $headers))."\n";

@@ -1,9 +1,8 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     Box, Container, Typography, Grid, Paper, Stack, Button,
-    IconButton, Divider, Avatar, TextField, Chip, LinearProgress, alpha,
+    IconButton, Divider, Avatar, TextField, Chip, alpha,
 } from '@mui/material';
-import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -15,7 +14,6 @@ import { useForm } from '@inertiajs/react';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
 import { formatBRL } from '@/Lib/formatters';
 import type { PageProps } from '@inertiajs/react';
-import type { SharedProps } from '@/Types/inertia';
 
 interface CartItemData {
     id: number;
@@ -40,11 +38,6 @@ interface CartData {
 interface Props extends PageProps { cart: CartData }
 
 export default function Cart({ cart }: Props) {
-    const { branding } = usePage<SharedProps>().props;
-    const freeShippingMin = branding?.free_shipping_min_cents ?? 200000;
-    const freeShippingEnabled = branding?.free_shipping_enabled ?? true;
-    const freeShippingProgress = Math.min(100, (cart.total_cents / freeShippingMin) * 100);
-    const remaining = Math.max(0, freeShippingMin - cart.total_cents);
 
     const [quantities, setQuantities] = useState<Record<number, number>>(
         Object.fromEntries(cart.items.map((i) => [i.id, i.quantity]))
@@ -198,36 +191,6 @@ export default function Cart({ cart }: Props) {
 
                     <Grid size={{ xs: 12, md: 4 }}>
                         <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', position: 'sticky', top: 80 }}>
-                            {/* Barra de progresso frete grátis */}
-                            {freeShippingEnabled && (
-                                <Box sx={{
-                                    p: 2,
-                                    bgcolor: remaining === 0 ? alpha('#16A34A', 0.06) : alpha('#0B5FFF', 0.04),
-                                    borderBottom: '1px solid', borderColor: 'divider',
-                                }}>
-                                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1 }}>
-                                        <LocalShippingIcon sx={{ fontSize: 18, color: remaining === 0 ? 'success.main' : 'primary.main' }} />
-                                        <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 13 }}>
-                                            {remaining === 0
-                                                ? '🎉 Você ganhou frete grátis!'
-                                                : `Falta ${formatBRL(remaining)} para frete grátis`}
-                                        </Typography>
-                                    </Stack>
-                                    <LinearProgress
-                                        variant="determinate"
-                                        value={freeShippingProgress}
-                                        sx={{
-                                            height: 6, borderRadius: 3,
-                                            bgcolor: 'rgba(0,0,0,0.08)',
-                                            '& .MuiLinearProgress-bar': {
-                                                borderRadius: 3,
-                                                bgcolor: remaining === 0 ? 'success.main' : 'primary.main',
-                                                transition: 'transform 0.6s ease',
-                                            },
-                                        }}
-                                    />
-                                </Box>
-                            )}
 
                             <Box sx={{ p: 3 }}>
                             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Resumo do pedido</Typography>
@@ -266,9 +229,6 @@ export default function Cart({ cart }: Props) {
                                     <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Total</Typography>
                                     <Typography variant="subtitle1" sx={{ fontWeight: 800, color: 'primary.main' }}>{formatBRL(cart.total_cents)}</Typography>
                                 </Stack>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    ou em até 12x sem juros no cartão
-                                </Typography>
                                 {/* Destaque Pix */}
                                 <Box sx={{
                                     display: 'flex', alignItems: 'center', gap: 1,

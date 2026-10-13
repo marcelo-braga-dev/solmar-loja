@@ -118,9 +118,6 @@ export default function FrequentlyBought({ mainProduct, companions }: Props) {
                     <Typography variant="h5" sx={{ fontWeight: 900, color: 'primary.main' }}>
                         {formatBRL(totalCents)}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        ou 12x de {formatBRL(Math.ceil(totalCents / 12))} sem juros
-                    </Typography>
                 </Box>
                 <Button
                     variant="contained"

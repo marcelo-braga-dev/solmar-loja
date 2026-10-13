@@ -9,7 +9,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import StorefrontLayout from '@/Layouts/StorefrontLayout';
-import { formatBRL, formatInstallment } from '@/Lib/formatters';
+import { formatBRL } from '@/Lib/formatters';
 import { useComparison } from '@/Hooks/useComparison';
 import type { PageProps } from '@inertiajs/react';
 
@@ -158,9 +158,6 @@ export default function Compare({ products }: Props) {
                                         )}
                                         <Typography variant="h6" sx={{ fontWeight: 900, color: p.has_discount ? '#DC2626' : 'primary.main', lineHeight: 1 }}>
                                             {formatBRL(p.price_cents)}
-                                        </Typography>
-                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                            {formatInstallment(p.price_cents)} sem juros
                                         </Typography>
                                     </TableCell>
                                 ))}

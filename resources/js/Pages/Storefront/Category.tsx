@@ -409,9 +409,6 @@ export default function CategoryPage({ category, products, brands, facets, filte
                                             <Typography sx={{ fontWeight: 900, fontSize: 18, color: product.has_discount ? '#DC2626' : 'primary.main', lineHeight: 1.1 }}>
                                                 {formatBRL(product.price_cents)}
                                             </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 11 }}>
-                                                12x sem juros
-                                            </Typography>
                                             {product.has_discount && (
                                                 <Chip label={`-${product.discount_percent}%`} size="small" color="error" sx={{ mt: 0.5, fontWeight: 700, fontSize: 10, height: 18, display: 'block' }} />
                                             )}

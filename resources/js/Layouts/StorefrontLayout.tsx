@@ -76,11 +76,6 @@ export default function StorefrontLayout({ children }: Props) {
                                 </Box>
                             )}
                         </Stack>
-                        {branding?.free_shipping_enabled && (
-                            <Typography variant="caption">
-                                Frete grátis para compras acima de {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((branding.free_shipping_min_cents ?? 200000) / 100)}
-                            </Typography>
-                        )}
                     </Stack>
                 </Container>
             </Box>
