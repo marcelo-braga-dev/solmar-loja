@@ -487,11 +487,12 @@ O preço de venda dos kits deixou de vir direto da integração (AppSolar/ERP) e
   4. **Mapeamento de Campos:** tabela campos externos → internos com tipos e conversões
 - KPIs: produtos sincronizados, total syncs, taxa de sucesso, última sync
 
-### Frete Grátis Dinâmico
-- `HandleInertiaRequests` compartilha `branding.free_shipping_min_cents` e `branding.free_shipping_enabled`
-- Corrigido em 3 lugares: `StorefrontLayout` (top bar), `Home.tsx` (benefícios), `Product.tsx` (garantias)
-- `Cart.tsx`: `LinearProgress` mostrando progresso até frete grátis com `formatBRL(remaining)`
-- Configurável pelo admin em `/admin/settings` sem deploy
+### Frete Grátis / Parcelamento sem juros — REMOVIDOS da loja (2026-10-13)
+- Por decisão comercial, a loja não exibe mais nenhuma promessa de "frete grátis" nem de "parcelamento sem juros / 12x"
+- Removidos de: `AnnouncementBar`, top bar do `StorefrontLayout`, `Home` (hero, benefícios, "como funciona", formas de pagamento), `Product`, `ProductCard`, `Category`, `Compare`, `KitBuilder`, `FrequentlyBought`, `Cart` (barra de progresso) e `Checkout`
+- `ShippingCalculator` e `Checkout` não aplicam mais frete zerado automático por valor mínimo (antes R$ 2.000 / R$ 30.000 no simulado)
+- `branding.free_shipping_*` continua compartilhado e configurável em `/admin/settings`, mas a loja não o consome; cupom do tipo `free_shipping` segue disponível
+- O parcelamento real no cartão é definido pelo Mercado Pago no `CreditCardForm`
 
 ---
 
